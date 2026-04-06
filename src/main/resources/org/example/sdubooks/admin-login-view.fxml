@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.shape.Circle?>
+
+
+<TilePane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="org.example.sdubooks.controller.AdminLoginController"
+
+            style="-fx-background-color: #f5f3ff;">
+    <VBox alignment="CENTER" spacing="30.0"
+          style="-fx-background-color: white; -fx-background-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 20, 0, 0, 5);"
+          maxWidth="450" minWidth="450"
+          VBox.vgrow="ALWAYS">
+        <padding>
+            <Insets top="50.0" bottom="50.0" left="40.0" right="40.0"/>
+        </padding>
+
+        <!-- 图标和标题区域 -->
+        <VBox alignment="CENTER" spacing="15.0">
+            <!-- 书本图标 -->
+                <StackPane>
+                    <Circle radius="45" fill="#ede9fe"/>
+                    <Text text="📖" style="-fx-font-size: 40px;"/>
+                </StackPane>
+
+            <Label text="管理员登录" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #1e1b4b;"/>
+            <Label text="图书管理系统后台" style="-fx-font-size: 16px; -fx-text-fill: #64748b;"/>
+        </VBox>
+
+        <!-- 表单区域 -->
+        <VBox spacing="20.0" maxWidth="400">
+            <!-- 用户名 -->
+            <VBox spacing="8.0">
+                <Label text="用户名" style="-fx-font-size: 14px; -fx-font-weight: 500; -fx-text-fill: #334155;"/>
+                <HBox spacing="10.0" style="-fx-background-color: #f8fafc; -fx-background-radius: 10; -fx-padding: 12;">
+                    <Label text="👤" style="-fx-font-size: 18px;"/>
+                    <TextField fx:id="usernameField" promptText="请输入用户名"
+                               style="-fx-background-color: transparent; -fx-font-size: 14px;"
+                               HBox.hgrow="ALWAYS"/>
+                </HBox>
+            </VBox>
+
+            <!-- 密码 -->
+            <VBox spacing="8.0">
+                <Label text="密码" style="-fx-font-size: 14px; -fx-font-weight: 500; -fx-text-fill: #334155;"/>
+                <HBox spacing="10.0" style="-fx-background-color: #f8fafc; -fx-background-radius: 10; -fx-padding: 12;">
+                    <Label text="🔒" style="-fx-font-size: 18px;"/>
+                    <PasswordField fx:id="passwordField" promptText="请输入密码"
+                                   style="-fx-background-color: transparent; -fx-font-size: 14px;"
+                                   HBox.hgrow="ALWAYS"/>
+                </HBox>
+            </VBox>
+
+            <!-- 登录按钮 -->
+            <Button text="登录" onAction="#handleLogin"
+                    style="-fx-background-color: #0f172a; -fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: 500; -fx-background-radius: 10; -fx-padding: 15;"
+                    maxWidth="Infinity"/>
+        </VBox>
+
+        <!-- 测试账号提示 -->
+        <Label text="测试账号：admin / admin"
+               style="-fx-font-size: 13px; -fx-text-fill: #94a3b8;"/>
+
+        <!-- 返回客户端链接 -->
+        <Hyperlink text="返回用户端" onAction="#handleBackToClient"
+                   style="-fx-text-fill: #3b82f6; -fx-font-size: 14px;"/>
+    </VBox>
+</TilePane>

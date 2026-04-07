@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+        <?import javafx.geometry.Insets?>
+        <?import javafx.scene.control.*?>
+        <?import javafx.scene.layout.*?>
+        <?import javafx.scene.text.*?>
+        <?import javafx.scene.shape.Rectangle?>
+        <?import javafx.scene.control.ScrollPane?>
+        <?import javafx.scene.image.ImageView?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="org.example.sdubooks.controller.HomePageController"
+            style="-fx-background-color: #f8fafc;">
+
+    <!-- 顶部导航栏 -->
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="20.0"
+              style="-fx-background-color: white; -fx-padding: 15 30; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 2);">
+            <!-- Logo -->
+            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                <Text text="📖" style="-fx-font-size: 28px;"/>
+                <Label text="图书管理系统" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+            </HBox>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <!-- 导航按钮 -->
+            <HBox alignment="CENTER" spacing="10.0">
+                <Button text="🏠 首页"
+                        style="-fx-background-color: #eff6ff; -fx-text-fill: #3b82f6; -fx-font-size: 16px; -fx-font-weight: 500; -fx-background-radius: 8; -fx-padding: 10 20;"
+                        disable="true"/>
+                <Button text="📈 排行榜" onAction="#handleRankings"
+                        style="-fx-background-color: transparent; -fx-text-fill: #475569; -fx-font-size: 16px; -fx-font-weight: 500;"/>
+                <Button text="👤 个人中心" onAction="#handleProfile"
+                        style="-fx-background-color: transparent; -fx-text-fill: #475569; -fx-font-size: 16px; -fx-font-weight: 500;"/>
+            </HBox>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <!-- 管理员登录 -->
+            <Button text="➡ 管理员登录" onAction="#handleAdminLogin"
+                    style="-fx-background-color: transparent; -fx-text-fill: #475569; -fx-font-size: 16px; -fx-font-weight: 500;"/>
+        </HBox>
+    </top>
+
+    <!-- 主内容区域 -->
+    <center>
+        <ScrollPane fitToWidth="true" style="-fx-background-color: #f8fafc;">
+            <VBox spacing="40.0" style="-fx-padding: 30;">
+
+                <StackPane style="-fx-background-color: linear-gradient(to right, #3b82f6, #a855f7); -fx-background-radius: 25;"
+                           maxHeight="300" minHeight="300">
+                    <HBox alignment="CENTER_LEFT" spacing="40.0" style="-fx-padding: 40;">
+                        <VBox spacing="20.0">
+                            <Label text="欢迎来到图书管理系统"
+                                   style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                            <Label text="发现、借阅、分享你喜爱的书籍"
+                                   style="-fx-font-size: 20px; -fx-text-fill: rgba(255,255,255,0.9);"/>
+
+                            <!-- 统计数据 -->
+                            <HBox spacing="25.0" style="-fx-padding: 20 0 0 0;">
+                                <VBox alignment="CENTER" spacing="8.0"
+                                      style="-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 15; -fx-padding: 20 30;">
+                                    <Label text="8" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                                    <Label text="馆藏图书" style="-fx-font-size: 16px; -fx-text-fill: rgba(255,255,255,0.9);"/>
+                                </VBox>
+                                <VBox alignment="CENTER" spacing="8.0"
+                                      style="-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 15; -fx-padding: 20 30;">
+                                    <Label text="1,248" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                                    <Label text="借阅次数" style="-fx-font-size: 16px; -fx-text-fill: rgba(255,255,255,0.9);"/>
+                                </VBox>
+                                <VBox alignment="CENTER" spacing="8.0"
+                                      style="-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 15; -fx-padding: 20 30;">
+                                    <Label text="356" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                                    <Label text="注册用户" style="-fx-font-size: 16px; -fx-text-fill: rgba(255,255,255,0.9);"/>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+                    </HBox>
+                </StackPane>
+
+                <!-- 图书分类区域 -->
+                <VBox spacing="20.0">
+                    <Label text="图书分类" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+
+                    <GridPane hgap="20.0" vgap="20.0">
+                        <columnConstraints>
+                            <ColumnConstraints halignment="CENTER" hgrow="ALWAYS"/>
+                            <ColumnConstraints halignment="CENTER" hgrow="ALWAYS"/>
+                            <ColumnConstraints halignment="CENTER" hgrow="ALWAYS"/>
+                            <ColumnConstraints halignment="CENTER" hgrow="ALWAYS"/>
+                        </columnConstraints>
+
+                        <!-- 小说 -->
+                        <VBox alignment="CENTER" spacing="10.0"
+                              style="-fx-background-color: white; -fx-background-radius: 15; -fx-padding: 30; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);"
+                              GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Button text="📚" onAction="#handleCategoryClick" userData="小说"
+                                    style="-fx-background-color: transparent; -fx-font-size: 48px; -fx-cursor: hand;"/>
+                            <Label text="小说" style="-fx-font-size: 16px; -fx-text-fill: #1e293b; -fx-font-weight: 500;"/>
+                        </VBox>
+
+                        <!-- 科技 -->
+                        <VBox alignment="CENTER" spacing="10.0"
+                              style="-fx-background-color: white; -fx-background-radius: 15; -fx-padding: 30; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);"
+                              GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Button text="💻" onAction="#handleCategoryClick" userData="科技"
+                                    style="-fx-background-color: transparent; -fx-font-size: 48px; -fx-cursor: hand;"/>
+                            <Label text="科技" style="-fx-font-size: 16px; -fx-text-fill: #1e293b; -fx-font-weight: 500;"/>
+                        </VBox>
+
+                        <!-- 历史 -->
+                        <VBox alignment="CENTER" spacing="10.0"
+                              style="-fx-background-color: white; -fx-background-radius: 15; -fx-padding: 30; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);"
+                              GridPane.columnIndex="2" GridPane.rowIndex="0">
+                            <Button text="📜" onAction="#handleCategoryClick" userData="历史"
+                                    style="-fx-background-color: transparent; -fx-font-size: 48px; -fx-cursor: hand;"/>
+                            <Label text="历史" style="-fx-font-size: 16px; -fx-text-fill: #1e293b; -fx-font-weight: 500;"/>
+                        </VBox>
+
+                        <!-- 科学 -->
+                        <VBox alignment="CENTER" spacing="10.0"
+                              style="-fx-background-color: white; -fx-background-radius: 15; -fx-padding: 30; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);"
+                              GridPane.columnIndex="3" GridPane.rowIndex="0">
+                            <Button text="🔬" onAction="#handleCategoryClick" userData="科学"
+                                    style="-fx-background-color: transparent; -fx-font-size: 48px; -fx-cursor: hand;"/>
+                            <Label text="科学" style="-fx-font-size: 16px; -fx-text-fill: #1e293b; -fx-font-weight: 500;"/>
+                        </VBox>
+
+                        <!-- 艺术 -->
+                        <VBox alignment="CENTER" spacing="10.0"
+                              style="-fx-background-color: white; -fx-background-radius: 15; -fx-padding: 30; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);"
+                              GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <Button text="🎨" onAction="#handleCategoryClick" userData="艺术"
+                                    style="-fx-background-color: transparent; -fx-font-size: 48px; -fx-cursor: hand;"/>
+                            <Label text="艺术" style="-fx-font-size: 16px; -fx-text-fill: #1e293b; -fx-font-weight: 500;"/>
+                        </VBox>
+
+                        <!-- 商业 -->
+                        <VBox alignment="CENTER" spacing="10.0"
+                              style="-fx-background-color: white; -fx-background-radius: 15; -fx-padding: 30; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);"
+                              GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <Button text="💼" onAction="#handleCategoryClick" userData="商业"
+                                    style="-fx-background-color: transparent; -fx-font-size: 48px; -fx-cursor: hand;"/>
+                            <Label text="商业" style="-fx-font-size: 16px; -fx-text-fill: #1e293b; -fx-font-weight: 500;"/>
+                        </VBox>
+
+                        <!-- 心理学 -->
+                        <VBox alignment="CENTER" spacing="10.0"
+                              style="-fx-background-color: white; -fx-background-radius: 15; -fx-padding: 30; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);"
+                              GridPane.columnIndex="2" GridPane.rowIndex="1">
+                            <Button text="🧠" onAction="#handleCategoryClick" userData="心理学"
+                                    style="-fx-background-color: transparent; -fx-font-size: 48px; -fx-cursor: hand;"/>
+                            <Label text="心理学" style="-fx-font-size: 16px; -fx-text-fill: #1e293b; -fx-font-weight: 500;"/>
+                        </VBox>
+
+                        <!-- 传记 -->
+                        <VBox alignment="CENTER" spacing="10.0"
+                              style="-fx-background-color: white; -fx-background-radius: 15; -fx-padding: 30; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);"
+                              GridPane.columnIndex="3" GridPane.rowIndex="1">
+                            <Button text="👤" onAction="#handleCategoryClick" userData="传记"
+                                    style="-fx-background-color: transparent; -fx-font-size: 48px; -fx-cursor: hand;"/>
+                            <Label text="传记" style="-fx-font-size: 16px; -fx-text-fill: #1e293b; -fx-font-weight: 500;"/>
+                        </VBox>
+                    </GridPane>
+                </VBox>
+
+                <!-- 最热书籍区域 -->
+                <VBox spacing="20.0">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="📈 最热书籍" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button text="查看排行榜 →" onAction="#handleViewRankings"
+                                style="-fx-background-color: transparent; -fx-text-fill: #3b82f6; -fx-font-size: 18px; -fx-font-weight: 500;"/>
+                    </HBox>
+
+                    <GridPane hgap="25.0" vgap="25.0">
+                        <columnConstraints>
+                            <ColumnConstraints halignment="CENTER" hgrow="ALWAYS"/>
+                            <ColumnConstraints halignment="CENTER" hgrow="ALWAYS"/>
+                        </columnConstraints>
+
+                        <!-- 书籍卡片1: 百年孤独 -->
+                        <HBox spacing="0"
+                              style="-fx-background-color: white; -fx-background-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 15, 0, 0, 5); -fx-padding: 0;"
+                              GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <StackPane style="-fx-background-color: #d4a574; -fx-pref-width: 150; -fx-min-width: 150; -fx-max-width: 150; -fx-pref-height: 200; -fx-min-height: 200; -fx-max-height: 200;">
+                                <ImageView fitWidth="150" fitHeight="200" preserveRatio="true"/>
+                            </StackPane>
+
+                            <VBox spacing="10.0" style="-fx-padding: 20; -fx-pref-width: 350;" HBox.hgrow="ALWAYS">
+                                <Label text="百年孤独" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                                <Label text="加西亚·马尔克斯" style="-fx-font-size: 16px; -fx-text-fill: #475569;"/>
+                                <HBox alignment="CENTER_LEFT" spacing="5.0">
+                                    <Label text="⭐" style="-fx-font-size: 18px;"/>
+                                    <Label text="4.9" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #f59e0b;"/>
+                                </HBox>
+                                <Label text="《百年孤独》是魔幻现实主义文学的代表作，描写了布恩迪亚家族七代人的传奇故事，以及加勒比..."
+                                       style="-fx-font-size: 14px; -fx-text-fill: #64748b;" wrapText="true" maxWidth="320" maxHeight="60"/>
+
+                                <HBox alignment="CENTER_LEFT">
+                                    <Label text="fiction" style="-fx-background-color: #f1f5f9; -fx-text-fill: #1e293b; -fx-font-size: 14px; -fx-padding: 5 12; -fx-background-radius: 15;"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Label text="借阅 412 次" style="-fx-font-size: 14px; -fx-text-fill: #64748b;"/>
+                                </HBox>
+
+                                <Label text="已借出" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #ef4444;"/>
+                            </VBox>
+                        </HBox>
+
+                        <!-- 书籍卡片2: 三体 -->
+                        <HBox spacing="0"
+                              style="-fx-background-color: white; -fx-background-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 15, 0, 0, 5); -fx-padding: 0;"
+                              GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <StackPane style="-fx-background-color: #8b7355; -fx-pref-width: 150; -fx-min-width: 150; -fx-max-width: 150; -fx-pref-height: 200; -fx-min-height: 200; -fx-max-height: 200;">
+                                <ImageView fitWidth="150" fitHeight="200" preserveRatio="true"/>
+                            </StackPane>
+
+                            <VBox spacing="10.0" style="-fx-padding: 20; -fx-pref-width: 350;" HBox.hgrow="ALWAYS">
+                                <Label text="三体" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                                <Label text="刘慈欣" style="-fx-font-size: 16px; -fx-text-fill: #475569;"/>
+                                <HBox alignment="CENTER_LEFT" spacing="5.0">
+                                    <Label text="⭐" style="-fx-font-size: 18px;"/>
+                                    <Label text="4.8" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #f59e0b;"/>
+                                </HBox>
+                                <Label text="文化大革命如火如荼地进行，天文学家叶文洁在其间历经劫难，被带到军方绝秘计划"
+                                       style="-fx-font-size: 14px; -fx-text-fill: #64748b;" wrapText="true" maxWidth="320" maxHeight="60"/>
+
+                                <HBox alignment="CENTER_LEFT">
+                                    <Label text="fiction" style="-fx-background-color: #f1f5f9; -fx-text-fill: #1e293b; -fx-font-size: 14px; -fx-padding: 5 12; -fx-background-radius: 15;"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Label text="借阅 328 次" style="-fx-font-size: 14px; -fx-text-fill: #64748b;"/>
+                                </HBox>
+
+                                <Label text="可借 (2/5)" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #22c55e;"/>
+                            </VBox>
+                        </HBox>
+
+                        <!-- 书籍卡片3: 史蒂夫·乔布斯传 -->
+                        <HBox spacing="0"
+                              style="-fx-background-color: white; -fx-background-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 15, 0, 0, 5); -fx-padding: 0;"
+                              GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <StackPane style="-fx-background-color: #c0c0c0; -fx-pref-width: 150; -fx-min-width: 150; -fx-max-width: 150; -fx-pref-height: 200; -fx-min-height: 200; -fx-max-height: 200;">
+                                <ImageView fitWidth="150" fitHeight="200" preserveRatio="true"/>
+                            </StackPane>
+
+                            <VBox spacing="10.0" style="-fx-padding: 20; -fx-pref-width: 350;" HBox.hgrow="ALWAYS">
+                                <Label text="史蒂夫·乔布斯传" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                                <Label text="Walter Isaacson" style="-fx-font-size: 16px; -fx-text-fill: #475569;"/>
+                                <HBox alignment="CENTER_LEFT" spacing="5.0">
+                                    <Label text="⭐" style="-fx-font-size: 18px;"/>
+                                    <Label text="4.5" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #f59e0b;"/>
+                                </HBox>
+                                <Label text="这是乔布斯唯一授权的官方传记。两年多的时间，与乔布斯40多次的面对面倾谈，以及与乔布斯一..."
+                                       style="-fx-font-size: 14px; -fx-text-fill: #64748b;" wrapText="true" maxWidth="320" maxHeight="60"/>
+
+                                <HBox alignment="CENTER_LEFT">
+                                    <Label text="biography" style="-fx-background-color: #f1f5f9; -fx-text-fill: #1e293b; -fx-font-size: 14px; -fx-padding: 5 12; -fx-background-radius: 15;"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Label text="借阅 298 次" style="-fx-font-size: 14px; -fx-text-fill: #64748b;"/>
+                                </HBox>
+
+                                <Label text="可借 (2/4)" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #22c55e;"/>
+                            </VBox>
+                        </HBox>
+
+                        <!-- 书籍卡片4: 心理学与生活 -->
+                        <HBox spacing="0"
+                              style="-fx-background-color: white; -fx-background-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 15, 0, 0, 5); -fx-padding: 0;"
+                              GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <StackPane style="-fx-background-color: #a0522d; -fx-pref-width: 150; -fx-min-width: 150; -fx-max-width: 150; -fx-pref-height: 200; -fx-min-height: 200; -fx-max-height: 200;">
+                                <ImageView fitWidth="150" fitHeight="200" preserveRatio="true"/>
+                            </StackPane>
+
+                            <VBox spacing="10.0" style="-fx-padding: 20; -fx-pref-width: 350;" HBox.hgrow="ALWAYS">
+                                <Label text="心理学与生活" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                                <Label text="Richard Gerrig" style="-fx-font-size: 16px; -fx-text-fill: #475569;"/>
+                                <HBox alignment="CENTER_LEFT" spacing="5.0">
+                                    <Label text="⭐" style="-fx-font-size: 18px;"/>
+                                    <Label text="4.7" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #f59e0b;"/>
+                                </HBox>
+                                <Label text="《心理学与生活》是美国斯坦福大学多年来使用的教材，也是在美国许多大学里推广使用的经典教..."
+                                       style="-fx-font-size: 14px; -fx-text-fill: #64748b;" wrapText="true" maxWidth="320" maxHeight="60"/>
+
+                                <HBox alignment="CENTER_LEFT">
+                                    <Label text="psychology" style="-fx-background-color: #f1f5f9; -fx-text-fill: #1e293b; -fx-font-size: 14px; -fx-padding: 5 12; -fx-background-radius: 15;"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Label text="借阅 267 次" style="-fx-font-size: 14px; -fx-text-fill: #64748b;"/>
+                                </HBox>
+
+                                <Label text="可借 (4/5)" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #22c55e;"/>
+                            </VBox>
+                        </HBox>
+                    </GridPane>
+                </VBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+</BorderPane>

@@ -33,8 +33,18 @@ public class ClientLoginController {
             return;
         }
 
-        if ("user".equals(username) && "user".equals(password)) {//检查用户名和密码是否正确
-            showAlert("登录成功", "登录成功！", Alert.AlertType.INFORMATION);
+        if ("user".equals(username) && "user".equals(password)) {
+            try {
+                FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/example/sdubooks/homepage-view.fxml"));
+                Scene scene = new Scene(fxmlLoader.load(), 1200, 800);
+                Stage stage = (Stage) usernameField.getScene().getWindow();
+                stage.setScene(scene);
+                stage.setTitle("图书管理系统");
+                stage.setMaximized(true);
+            } catch (IOException e) {
+                e.printStackTrace();
+                showAlert("错误", "无法加载首页", Alert.AlertType.ERROR);
+            }
         } else {
             showAlert("登录错误", "用户名或密码错误", Alert.AlertType.ERROR);
         }
@@ -43,14 +53,14 @@ public class ClientLoginController {
     @FXML
     protected void handleBackToAdmin() {
         try {
-            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/example/sdubooks/client-login-view.fxml"));
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/example/sdubooks/admin-login-view.fxml"));
             Scene scene = new Scene(fxmlLoader.load(), 450, 650);
             Stage stage = (Stage) usernameField.getScene().getWindow();
             stage.setScene(scene);
-            stage.setTitle("用户端登录");
+            stage.setTitle("管理员登录");
         } catch (IOException e) {
             e.printStackTrace();
-            showAlert("错误", "无法加载客户端登录页面", Alert.AlertType.ERROR);
+            showAlert("错误", "无法加载管理员登录页面", Alert.AlertType.ERROR);
         }
     }
 

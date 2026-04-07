@@ -33,6 +33,7 @@ public class AdminLoginController {
             return;
         }
 
+
         if ("admin".equals(username) && "admin".equals(password)) {
             showAlert("成功", "登录成功！", Alert.AlertType.INFORMATION);
         } else {
@@ -43,14 +44,14 @@ public class AdminLoginController {
     @FXML
     protected void handleBackToClient() {
         try {
-            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("admin-login-view.fxml"));
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/example/sdubooks/client-login-view.fxml"));
             Scene scene = new Scene(fxmlLoader.load(), 450, 650);
             Stage stage = (Stage) usernameField.getScene().getWindow();
             stage.setScene(scene);
-            stage.setTitle("管理员登录");
+            stage.setTitle("用户端登录");
         } catch (IOException e) {
             e.printStackTrace();
-            showAlert("错误", "无法加载管理端登录页面", Alert.AlertType.ERROR);
+            showAlert("错误", "无法加载用户端登录页面", Alert.AlertType.ERROR);
         }
     }
 

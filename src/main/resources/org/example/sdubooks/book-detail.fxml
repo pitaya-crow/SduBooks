@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-        <?import javafx.geometry.Insets?>
-        <?import javafx.scene.control.*?>
-        <?import javafx.scene.layout.*?>
-        <?import javafx.scene.text.*?>
-        <?import javafx.scene.shape.Rectangle?>
-        <?import javafx.scene.control.ScrollPane?>
-        <?import javafx.scene.image.ImageView?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.ImageView?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.sdubooks.controller.HomePageController"
+            fx:controller="org.example.sdubooks.controller.BookDetailController"
             style="-fx-background-color: #f8fafc;">
 
     <!-- 顶部导航栏 -->
@@ -299,3 +299,4 @@
         </ScrollPane>
     </center>
 </BorderPane>
+

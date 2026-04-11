@@ -1,6 +1,8 @@
 module org.example.sdubooks {
     requires javafx.controls;
     requires javafx.fxml;
+    requires javafx.graphics;
+    requires javafx.base;
 
 
     opens org.example.sdubooks to javafx.fxml;

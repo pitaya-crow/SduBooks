@@ -16,11 +16,43 @@ public class BaseController {
     @FXML
     protected void handleRankings() {
         System.out.println("点击了排行榜按钮");
+
+        // 跳转到排行榜页面
+        try {
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/example/sdubooks/ranking.fxml"));
+            Scene scene = new Scene(fxmlLoader.load(), 450, 650);
+            Stage stage = (Stage) ((Button) fxmlLoader.getNamespace().get("usernameField")).getScene().getWindow();
+            stage.setScene(scene);
+            stage.setTitle("排行榜");
+        } catch (IOException e) {
+            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("错误");
+            alert.setHeaderText(null);
+            alert.setContentText("无法加载排行榜页面");
+            alert.showAndWait();
+        }
     }
 
     @FXML
     protected void handleProfile() {
         System.out.println("点击了个人中心按钮");
+
+        // 跳转到个人中心页面
+        try {
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/example/sdubooks/ranking.fxml"));
+            Scene scene = new Scene(fxmlLoader.load(), 450, 650);
+            Stage stage = (Stage) ((Button) fxmlLoader.getNamespace().get("usernameField")).getScene().getWindow();
+            stage.setScene(scene);
+            stage.setTitle("个人中心");
+        } catch (IOException e) {
+            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("错误");
+            alert.setHeaderText(null);
+            alert.setContentText("无法加载个人中心页面");
+            alert.showAndWait();
+        }
     }
 
     @FXML

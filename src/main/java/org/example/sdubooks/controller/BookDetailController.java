@@ -2,6 +2,6 @@ package org.example.sdubooks.controller;
 
 import javafx.event.ActionEvent;
 
-public class BookDetailController {
+public class BookDetailController extends BaseController{
 
 }

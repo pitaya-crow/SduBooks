@@ -23,7 +23,7 @@ public class ClientLoginController {
     private PasswordField passwordField;
 
     // 后端接口地址
-    private static final String LOGIN_URL = "http://10.27.241.94:8081/api/login";
+    private static final String LOGIN_URL = "http://localhost:8081/api/login";
 
     private final OkHttpClient client = new OkHttpClient();
     private final Gson gson = new Gson();

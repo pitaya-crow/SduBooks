@@ -8,6 +8,8 @@ module org.example.sdubooks {
 
     opens org.example.sdubooks.controller to javafx.fxml, com.google.gson;
 
+    opens org.example.sdubooks.model to com.google.gson;
+
     opens org.example.sdubooks to javafx.fxml;
     exports org.example.sdubooks;
 

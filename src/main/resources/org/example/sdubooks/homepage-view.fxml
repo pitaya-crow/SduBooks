@@ -35,17 +35,17 @@
                             <HBox spacing="25.0" style="-fx-padding: 20 0 0 0;">
                                 <VBox alignment="CENTER" spacing="8.0"
                                       style="-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 15; -fx-padding: 20 30;">
-                                    <Label text="8" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                                    <Label fx:id="bookCountLabel" text="8" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: white;"/>
                                     <Label text="馆藏图书" style="-fx-font-size: 16px; -fx-text-fill: rgba(255,255,255,0.9);"/>
                                 </VBox>
                                 <VBox alignment="CENTER" spacing="8.0"
                                       style="-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 15; -fx-padding: 20 30;">
-                                    <Label text="1,248" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                                    <Label fx:id="borrowCountLabel" text="1,248" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: white;"/>
                                     <Label text="借阅次数" style="-fx-font-size: 16px; -fx-text-fill: rgba(255,255,255,0.9);"/>
                                 </VBox>
                                 <VBox alignment="CENTER" spacing="8.0"
                                       style="-fx-background-color: rgba(255,255,255,0.2); -fx-background-radius: 15; -fx-padding: 20 30;">
-                                    <Label text="356" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                                    <Label fx:id="userCountLabel" text="356" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: white;"/>
                                     <Label text="注册用户" style="-fx-font-size: 16px; -fx-text-fill: rgba(255,255,255,0.9);"/>
                                 </VBox>
                             </HBox>

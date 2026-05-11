@@ -1,7 +1,12 @@
 package org.example.sdubooks.controller;
 
 import javafx.event.ActionEvent;
+import com.google.gson.Gson;
 import javafx.fxml.FXML;
+import javafx.scene.control.Label;
+import org.example.sdubooks.model.HomeStats;
+import okhttp3.*;
+import java.io.IOException;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -14,6 +19,52 @@ import java.io.IOException;
 
 public class HomePageController extends BaseController{
 
+    @FXML
+    private Label bookCountLabel;
+    @FXML
+    private Label borrowCountLabel;
+    @FXML
+    private Label userCountLabel;
+
+    private final OkHttpClient client = new OkHttpClient();
+    private final Gson gson = new Gson();
+
+    private static final String BASE_URL = "http://10.27.241.94:8081/api/home";
+    private static final String STATS_URL = BASE_URL + "/stats";
+
+    @FXML
+    public void initialize() {
+        fetchStatsData();
+    }
+
+    private void fetchStatsData() {
+        Request request = new Request.Builder()
+                .url(STATS_URL)
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful() && response.body() != null) {
+                    String jsonData = response.body().string();
+                    HomeStats stats = gson.fromJson(jsonData, HomeStats.class);
+
+                    // 在 JavaFX 主线程更新 UI
+                    javafx.application.Platform.runLater(() -> {
+                        bookCountLabel.setText(String.valueOf(stats.getBookCount()));
+                        borrowCountLabel.setText(String.valueOf(stats.getBorrowCount()));
+                        userCountLabel.setText(String.valueOf(stats.getUserCount()));
+                    });
+                }
+            }
+        });
+    }
     @FXML
     protected void handleCategoryClick(ActionEvent event) {
         Button button = (Button) event.getSource();

@@ -56,22 +56,10 @@ public class BaseController {
     }
 
     @FXML
-    protected void handleAdminLogin() {
-        System.out.println("点击了管理员登录按钮");
-        try {
-            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/example/sdubooks/admin-login-view.fxml"));
-            Scene scene = new Scene(fxmlLoader.load(), 450, 650);
-            Stage stage = (Stage) ((Button) fxmlLoader.getNamespace().get("usernameField")).getScene().getWindow();
-            stage.setScene(scene);
-            stage.setTitle("管理员登录");
-        } catch (IOException e) {
-            e.printStackTrace();
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("错误");
-            alert.setHeaderText(null);
-            alert.setContentText("无法加载管理员登录页面");
-            alert.showAndWait();
-        }
+    protected void handleLogout() {
+        System.out.println("点击了退出登录按钮");
+
+
     }
 
 }

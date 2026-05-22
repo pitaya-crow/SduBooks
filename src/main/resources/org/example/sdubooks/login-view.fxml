@@ -6,11 +6,10 @@
 <?import javafx.scene.text.*?>
 <?import javafx.scene.shape.Circle?>
 
-
 <TilePane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.sdubooks.controller.AdminLoginController"
+          fx:controller="org.example.sdubooks.controller.LoginController"
+          style="-fx-background-color: #f5f3ff;">
 
-            style="-fx-background-color: #f5f3ff;">
     <VBox alignment="CENTER" spacing="30.0"
           style="-fx-background-color: white; -fx-background-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 20, 0, 0, 5);"
           maxWidth="450" minWidth="450"
@@ -21,14 +20,15 @@
 
         <!-- 图标和标题区域 -->
         <VBox alignment="CENTER" spacing="15.0">
-            <!-- 书本图标 -->
-                <StackPane>
-                    <Circle radius="45" fill="#ede9fe"/>
-                    <Text text="📖" style="-fx-font-size: 40px;"/>
-                </StackPane>
+            <StackPane>
+                <Circle radius="45" fill="#ede9fe"/>
+                <Text text="📖" style="-fx-font-size: 40px;"/>
+            </StackPane>
 
-            <Label text="管理员登录" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #1e1b4b;"/>
-            <Label text="图书管理系统后台" style="-fx-font-size: 16px; -fx-text-fill: #64748b;"/>
+            <Label fx:id="titleLabel" text="用户登录"
+                   style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #1e1b4b;"/>
+            <Label fx:id="subTitleLabel" text="图书管理系统"
+                   style="-fx-font-size: 16px; -fx-text-fill: #64748b;"/>
         </VBox>
 
         <!-- 表单区域 -->
@@ -59,14 +59,19 @@
             <Button text="登录" onAction="#handleLogin"
                     style="-fx-background-color: #0f172a; -fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: 500; -fx-background-radius: 10; -fx-padding: 15;"
                     maxWidth="Infinity"/>
+
+            <!-- 注册按钮：管理员模式下会被隐藏 -->
+            <Button fx:id="registerBtn" text="注册新账号" onAction="#handleRegister"
+                    style="-fx-background-color: transparent; -fx-text-fill: #334155; -fx-font-size: 14px; -fx-border-color: #cbd5e1; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 12;"
+                    maxWidth="Infinity"/>
         </VBox>
 
-        <!-- 测试账号提示 -->
+        <!-- 测试账号提示：两种模式均固定显示 -->
         <Label text="测试账号：admin / admin"
                style="-fx-font-size: 13px; -fx-text-fill: #94a3b8;"/>
 
-        <!-- 返回客户端链接 -->
-        <Hyperlink text="返回用户端" onAction="#handleBackToClient"
+        <!-- 底部切换链接 -->
+        <Hyperlink fx:id="switchLink" text="切换到管理员登录" onAction="#toggleLoginMode"
                    style="-fx-text-fill: #3b82f6; -fx-font-size: 14px;"/>
     </VBox>
 </TilePane>

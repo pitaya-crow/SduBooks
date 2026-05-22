@@ -5,6 +5,7 @@ module org.example.sdubooks {
     requires javafx.base;
     requires okhttp3;
     requires com.google.gson;
+    requires java.prefs;
 
     opens org.example.sdubooks.controller to javafx.fxml, com.google.gson;
 

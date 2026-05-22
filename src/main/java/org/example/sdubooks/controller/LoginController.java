@@ -111,6 +111,14 @@ public class LoginController {
 
         executePostRequest(LOGIN_URL, loginData, result -> {
             if (result.getCode() == 200) {
+                // 登录成功，保存 token 到本地
+                if (result.getData() != null && result.getData().getToken() != null) {
+                    BaseController.saveToken(result.getData().getToken());
+                } else {
+                    // 防御性处理：后端返回200但未携带Token时给出警告
+                    showAlert("警告", "登录成功但未获取到凭证，部分功能可能受限", Alert.AlertType.WARNING);
+                }
+
                 // 登录成功，根据后端返回的 role 字段动态跳转
                 String role = result.getData() != null ? result.getData().getRole() : null;
                 if ("ADMIN".equals(role)) {

@@ -115,8 +115,8 @@ public class HomePageController extends BaseController {
         String categoryName = (String) btn.getUserData();
         System.out.println("点击了分类: " + categoryName);
 
-        // TODO: 这里可以添加跳转到对应分类图书列表的逻辑
-        // navigateTo("/org/example/sdubooks/book-list.fxml", "分类: " + categoryName, btn);
+        // 跳转到对应分类图书列表的逻辑
+        navigateTo("/org/example/sdubooks/category.fxml", "分类: " + categoryName, btn);
     }
 
     /**

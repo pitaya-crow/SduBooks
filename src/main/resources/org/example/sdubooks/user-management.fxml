@@ -1,14 +1,146 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.Insets?>
 
 <AnchorPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="CONTROLLER_NAME"
-            prefHeight="400.0" prefWidth="600.0">
+            fx:controller="org.example.sdubooks.controller.UserManagementController"
+            prefWidth="900" prefHeight="700">
 
+    <children>
+        <!-- 标题栏 -->
+        <HBox layoutX="20" layoutY="20" spacing="10">
+            <children>
+                <Label text="👥" style="-fx-font-size: 24px;"/>
+                <Label text="用户管理" style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
+            </children>
+        </HBox>
+
+        <!-- 搜索框 -->
+        <HBox layoutX="20" layoutY="60" spacing="10">
+            <children>
+                <TextField fx:id="searchField" promptText="🔍 按用户名或邮箱搜索..." prefWidth="300"/>
+                <Button text="搜索" onAction="#handleSearch" style="-fx-background-color: #5a3cff; -fx-text-fill: white;"/>
+                <Pane HBox.hgrow="ALWAYS"/>
+                <Label text="共" style="-fx-font-size: 14px;"/>
+                <Label fx:id="totalUsersLabel" text="0" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #5a3cff;"/>
+                <Label text="个用户" style="-fx-font-size: 14px;"/>
+            </children>
+        </HBox>
+
+        <!-- 用户表格 -->
+        <TableView fx:id="usersTable" layoutX="20" layoutY="100" prefWidth="860" prefHeight="450">
+            <columns>
+                <!-- 用户名 -->
+                <TableColumn text="用户名" prefWidth="150">
+                    <cellValueFactory>
+                        <javafx.scene.control.cell.PropertyValueFactory property="username"/>
+                    </cellValueFactory>
+                </TableColumn>
+
+                <!-- 邮箱 -->
+                <TableColumn text="邮箱" prefWidth="200">
+                    <cellValueFactory>
+                        <javafx.scene.control.cell.PropertyValueFactory property="email"/>
+                    </cellValueFactory>
+                </TableColumn>
+
+                <!-- 角色 -->
+                <TableColumn text="角色" prefWidth="100">
+                    <cellValueFactory>
+                        <javafx.scene.control.cell.PropertyValueFactory property="role"/>
+                    </cellValueFactory>
+                    <cellFactory>
+                        <javafx.util.Callback>
+                            <fx:script>
+                                function call(param) {
+                                var cell = new javafx.scene.control.TableCell();
+                                cell.textProperty().bind(cell.itemProperty());
+                                cell.styleProperty().bind(cell.itemProperty().when(cell.itemProperty().isEqualTo("ADMIN"))
+                                .then("-fx-font-weight: bold; -fx-text-fill: #ff5722;")
+                                .otherwise("-fx-text-fill: #333;"));
+                                return cell;
+                                }
+                            </fx:script>
+                        </javafx.util.Callback>
+                    </cellFactory>
+                </TableColumn>
+
+                <!-- 状态 -->
+                <TableColumn text="状态" prefWidth="120">
+                    <cellValueFactory>
+                        <javafx.scene.control.cell.PropertyValueFactory property="enabled"/>
+                    </cellValueFactory>
+                    <cellFactory>
+                        <javafx.util.Callback>
+                            <fx:script>
+                                function call(param) {
+                                var cell = new javafx.scene.control.TableCell();
+                                var switchBtn = new javafx.scene.control.ToggleButton();
+                                switchBtn.textProperty().bind(cell.itemProperty().when(cell.itemProperty().isEqualTo(true))
+                                .then("✓ 启用")
+                                .otherwise("✗ 禁用"));
+                                switchBtn.styleProperty().bind(cell.itemProperty().when(cell.itemProperty().isEqualTo(true))
+                                .then("-fx-background-color: #4CAF50; -fx-text-fill: white;")
+                                .otherwise("-fx-background-color: #f44336; -fx-text-fill: white;"));
+                                switchBtn.setOnAction(function(event) {
+                                controller.toggleUserStatus(cell.tableRow.item);
+                                });
+                                cell.graphicProperty().bind(cell.emptyProperty().not().then(switchBtn));
+                                return cell;
+                                }
+                            </fx:script>
+                        </javafx.util.Callback>
+                    </cellFactory>
+                </TableColumn>
+
+                <!-- 操作 -->
+                <TableColumn text="操作" prefWidth="100">
+                    <cellFactory>
+                        <javafx.util.Callback>
+                            <fx:script>
+                                function call(param) {
+                                var cell = new javafx.scene.control.TableCell();
+                                var deleteBtn = new javafx.scene.control.Button("🗑️");
+                                deleteBtn.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-size: 14px;");
+                                deleteBtn.setOnAction(function(event) {
+                                controller.deleteUser(cell.tableRow.item);
+                                });
+                                cell.graphicProperty().bind(cell.emptyProperty().not().then(deleteBtn));
+                                return cell;
+                                }
+                            </fx:script>
+                        </javafx.util.Callback>
+                    </cellFactory>
+                </TableColumn>
+            </columns>
+        </TableView>
+
+        <!-- 底部工具栏 -->
+        <HBox layoutX="20" layoutY="560" spacing="10" prefWidth="860">
+            <children>
+                <!-- 全选/全不选 -->
+                <CheckBox fx:id="selectAllCheckbox" text="全选" onAction="#handleSelectAll"/>
+
+                <Button text="批量删除" onAction="#handleBatchDelete"
+                        style="-fx-background-color: #f44336; -fx-text-fill: white;"
+                        disable="true"/>
+
+                <Pane HBox.hgrow="ALWAYS"/>
+
+                <!-- 分页控件 -->
+                <HBox spacing="10" alignment="CENTER_RIGHT">
+                    <children>
+                        <Button fx:id="prevPageBtn" text="❮" onAction="#handlePreviousPage"
+                                style="-fx-background-color: #e0e0e0;"/>
+                        <Label fx:id="pageInfoLabel" text="1/10" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+                        <Button fx:id="nextPageBtn" text="❯" onAction="#handleNextPage"
+                                style="-fx-background-color: #e0e0e0;"/>
+                    </children>
+                </HBox>
+            </children>
+        </HBox>
+    </children>
 </AnchorPane>

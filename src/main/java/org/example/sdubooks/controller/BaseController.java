@@ -62,6 +62,11 @@ public class BaseController {
     }
 
     // ==================== 页面跳转 ====================
+    @FXML
+    protected void handleHome() {
+        System.out.println("点击了首页按钮");
+        navigateTo("/org/example/sdubooks/homepage-view.fxml", "首页", 800, 600);
+    }
 
     @FXML
     protected void handleRankings() {

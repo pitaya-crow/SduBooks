@@ -1,14 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
+<ScrollPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="CONTROLLER_NAME"
-            prefHeight="400.0" prefWidth="600.0">
+            fx:controller="org.example.sdubooks.controller.BorrowStatisticsController"
+            prefWidth="900" prefHeight="700"
+            style="-fx-background-color: #f5f5f5;">
 
-</AnchorPane>
+    <VBox spacing="20" style="-fx-padding: 24px; -fx-background-color: #f5f5f5;">
+
+        <!-- 标题 -->
+        <VBox spacing="8">
+            <Label text="借阅统计" style="-fx-font-size: 28px; -fx-font-weight: bold;"/>
+            <Label text="查看图书借阅数据和趋势" style="-fx-font-size: 16px; -fx-text-fill: #666;"/>
+        </VBox>
+
+        <!-- 统计卡片 -->
+        <HBox spacing="20">
+            <!-- 总借阅次数 -->
+            <VBox style="-fx-padding: 20px; -fx-background-color: white; -fx-border-radius: 12px; -fx-border-color: #e0e0e0; -fx-min-width: 250px;">
+                <children>
+                    <Label text="总借阅次数" style="-fx-font-size: 16px; -fx-text-fill: #666;"/>
+                    <Label fx:id="totalBorrowLabel" text="0" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #333; -fx-padding: 8px 0;"/>
+                    <Label text="最近6个月" style="-fx-font-size: 12px; -fx-text-fill: #999;"/>
+                </children>
+            </VBox>
+
+            <!-- 总归还次数 -->
+            <VBox style="-fx-padding: 20px; -fx-background-color: white; -fx-border-radius: 12px; -fx-border-color: #e0e0e0; -fx-min-width: 250px;">
+                <children>
+                    <Label text="总归还次数" style="-fx-font-size: 16px; -fx-text-fill: #666;"/>
+                    <Label fx:id="totalReturnLabel" text="0" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #333; -fx-padding: 8px 0;"/>
+                    <Label text="最近6个月" style="-fx-font-size: 12px; -fx-text-fill: #999;"/>
+                </children>
+            </VBox>
+
+            <!-- 本月增长率 -->
+            <VBox style="-fx-padding: 20px; -fx-background-color: white; -fx-border-radius: 12px; -fx-border-color: #e0e0e0; -fx-min-width: 250px;">
+                <children>
+                    <Label text="本月增长率" style="-fx-font-size: 16px; -fx-text-fill: #666;"/>
+                    <Label fx:id="growthRateLabel" text="0%" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #4CAF50; -fx-padding: 8px 0;"/>
+                    <Label text="相比上月" style="-fx-font-size: 12px; -fx-text-fill: #999;"/>
+                </children>
+            </VBox>
+        </HBox>
+
+        <!-- 借阅趋势图 -->
+        <VBox style="-fx-padding: 20px; -fx-background-color: white; -fx-border-radius: 12px; -fx-border-color: #e0e0e0;">
+            <VBox fx:id="trendChartBox" spacing="10"/>
+        </VBox>
+
+        <!-- 分类统计图 -->
+        <VBox style="-fx-padding: 20px; -fx-background-color: white; -fx-border-radius: 12px; -fx-border-color: #e0e0e0;">
+            <VBox fx:id="categoryChartBox" spacing="10"/>
+        </VBox>
+
+        <!-- 借阅排行 -->
+        <VBox style="-fx-padding: 20px; -fx-background-color: white; -fx-border-radius: 12px; -fx-border-color: #e0e0e0;">
+            <VBox fx:id="borrowRankBox" spacing="10"/>
+        </VBox>
+
+    </VBox>
+</ScrollPane>

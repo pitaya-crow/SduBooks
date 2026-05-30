@@ -15,10 +15,10 @@ public class AdminController extends BaseController {
     @FXML private VBox leftNav;
 
     // 页面路径映射（保持整洁）
-    private static final String DASHBOARD_FXML = "/org/example/sdubooks/admin/dashboard.fxml";
-    private static final String BOOK_MANAGE_FXML = "/org/example/sdubooks/admin/book-management.fxml";
-    private static final String USER_MANAGE_FXML = "/org/example/sdubooks/admin/user-management.fxml";
-    private static final String BORROW_STATS_FXML = "/org/example/sdubooks/admin/borrow-statistics.fxml";
+    private static final String DASHBOARD_FXML = "/org/example/sdubooks/dashboard.fxml";
+    private static final String BOOK_MANAGE_FXML = "/org/example/sdubooks/book-management.fxml";
+    private static final String USER_MANAGE_FXML = "/org/example/sdubooks/user-management.fxml";
+    private static final String BORROW_STATS_FXML = "/org/example/sdubooks/borrow-statistics.fxml";
 
     @Override
     protected Stage getCurrentStage() {

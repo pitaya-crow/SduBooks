@@ -20,8 +20,96 @@
     <!-- 主内容区域 -->
     <center>
         <ScrollPane fitToWidth="true" style="-fx-background-color: #f8fafc;">
+            <content>
+                <VBox spacing="20.0" style="-fx-padding: 30;">
+                    <!-- 返回按钮 -->
+                    <Button fx:id="btnBack" text="← 返回" onAction="#handleBack"
+                            style="-fx-background-color: transparent; -fx-font-size: 16px; -fx-text-fill: #64748b; -fx-cursor: hand;"/>
 
+                    <!-- 图书信息区 -->
+                    <HBox spacing="40.0">
+                        <!-- 图书封面 -->
+                        <VBox fx:id="coverBox" alignment="CENTER" style="-fx-min-width: 280px; -fx-min-height: 380px; -fx-background-color: #e2e8f0; -fx-background-radius: 20;">
+                            <Label text="" style="-fx-font-size: 80px;"/>
+                        </VBox>
+
+                        <!-- 图书详细信息 -->
+                        <VBox spacing="15.0" HBox.hgrow="ALWAYS">
+                            <!-- 分类标签 -->
+                            <Label fx:id="categoryLabel" text="fiction"
+                                   style="-fx-background-color: #0f172a; -fx-background-radius: 15; -fx-padding: 5 15; -fx-font-size: 14px; -fx-text-fill: white;"/>
+
+                            <!-- 书名 -->
+                            <Label fx:id="titleLabel" text="三体"
+                                   style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+
+                            <!-- 作者 -->
+                            <Label fx:id="authorLabel" text="刘慈欣"
+                                   style="-fx-font-size: 20px; -fx-text-fill: #64748b;"/>
+
+                            <!-- 评分和借阅信息 -->
+                            <HBox spacing="15.0" alignment="CENTER_LEFT">
+                                <Label fx:id="ratingLabel" text="4.8"
+                                       style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                                <Label text="|" style="-fx-font-size: 20px; -fx-text-fill: #cbd5e1;"/>
+                                <Label fx:id="borrowCountLabel" text="借阅 328 次"
+                                       style="-fx-font-size: 16px; -fx-text-fill: #64748b;"/>
+                                <Label text="|" style="-fx-font-size: 20px; -fx-text-fill: #cbd5e1;"/>
+                                <Label fx:id="availableLabel" text="可借 2/5"
+                                       style="-fx-font-size: 16px; -fx-text-fill: #22c55e; -fx-font-weight: bold;"/>
+                            </HBox>
+
+                            <!-- 图书信息卡片 -->
+                            <VBox spacing="12.0" style="-fx-background-color: white; -fx-background-radius: 20; -fx-padding: 25; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);">
+                                <Label text="图书信息" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                                <Separator/>
+                                <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                    <Label text="#" style="-fx-font-size: 18px; -fx-text-fill: #94a3b8;"/>
+                                    <Label text="ISBN: " style="-fx-font-size: 16px; -fx-text-fill: #64748b;"/>
+                                    <Label fx:id="isbnLabel" text="978-7-5366-9293-0" style="-fx-font-size: 16px; -fx-text-fill: #1e293b;"/>
+                                </HBox>
+                                <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                    <Label text="" style="-fx-font-size: 18px;"/>
+                                    <Label text="出版社: " style="-fx-font-size: 16px; -fx-text-fill: #64748b;"/>
+                                    <Label fx:id="publisherLabel" text="重庆出版社" style="-fx-font-size: 16px; -fx-text-fill: #1e293b;"/>
+                                </HBox>
+                                <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                    <Label text="" style="-fx-font-size: 18px;"/>
+                                    <Label text="出版日期: " style="-fx-font-size: 16px; -fx-text-fill: #64748b;"/>
+                                    <Label fx:id="publishDateLabel" text="2008-01" style="-fx-font-size: 16px; -fx-text-fill: #1e293b;"/>
+                                </HBox>
+                                <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                    <Label text="📚" style="-fx-font-size: 18px;"/>
+                                    <Label text="馆藏数量: " style="-fx-font-size: 16px; -fx-text-fill: #64748b;"/>
+                                    <Label fx:id="totalLabel" text="5 册（可借 2 册）" style="-fx-font-size: 16px; -fx-text-fill: #1e293b;"/>
+                                </HBox>
+                            </VBox>
+                        </VBox>
+
+                        <!-- 操作按钮区 -->
+                        <VBox spacing="10.0" alignment="CENTER">
+                            <Button fx:id="btnBorrow" text="借阅此书" onAction="#handleBorrow"
+                                    style="-fx-background-color: #0f172a; -fx-background-radius: 15; -fx-padding: 15 40; -fx-font-size: 16px; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;"/>
+                            <Button fx:id="btnWriteReview" text="写书评" onAction="#handleWriteReview"
+                                    style="-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 15; -fx-background-radius: 15; -fx-padding: 15 40; -fx-font-size: 16px; -fx-cursor: hand;"/>
+                        </VBox>
+                    </HBox>
+
+                    <!-- 内容简介 -->
+                    <VBox spacing="15.0" style="-fx-background-color: white; -fx-background-radius: 20; -fx-padding: 25; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);">
+                        <Label text="内容简介" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                        <Label fx:id="descriptionLabel" text="" wrapText="true"
+                               style="-fx-font-size: 16px; -fx-text-fill: #334155; -fx-line-spacing: 8;"/>
+                    </VBox>
+
+                    <!-- 读者书评 -->
+                    <VBox spacing="20.0">
+                        <Label fx:id="reviewCountLabel" text="读者书评 (0)"
+                               style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                        <VBox fx:id="reviewsContainer" spacing="15.0"/>
+                    </VBox>
+                </VBox>
+            </content>
         </ScrollPane>
     </center>
 </BorderPane>
-

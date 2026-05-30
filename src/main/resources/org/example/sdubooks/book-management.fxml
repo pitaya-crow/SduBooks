@@ -1,14 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
 
+<?import javafx.scene.control.cell.PropertyValueFactory?>
 <AnchorPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="CONTROLLER_NAME"
-            prefHeight="400.0" prefWidth="600.0">
+            fx:controller="org.example.sdubooks.controller.BookManagementController"
+            prefWidth="900" prefHeight="700">
 
+    <children>
+        <!-- 标题 + 新增按钮 -->
+        <HBox layoutX="20" layoutY="20" spacing="12" alignment="CENTER_LEFT" prefWidth="860">
+            <Label text="📚 书籍管理" style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
+            <Pane HBox.hgrow="ALWAYS"/>
+            <Button text="+ 新增书籍" onAction="#handleAddBook"
+                    style="-fx-background-color: #5a3cff; -fx-text-fill: white; -fx-padding: 8px 20px; -fx-font-size: 14px;"/>
+        </HBox>
+
+        <!-- 搜索栏 -->
+        <HBox layoutX="20" layoutY="60" spacing="10" alignment="CENTER_LEFT">
+            <TextField fx:id="searchField" promptText="🔍 按书名或作者搜索..." prefWidth="300"/>
+            <Button text="搜索" onAction="#handleSearch"
+                    style="-fx-background-color: #5a3cff; -fx-text-fill: white;"/>
+            <Pane HBox.hgrow="ALWAYS"/>
+            <Label text="共 "/>
+            <Label fx:id="totalBooksLabel" text="0" style="-fx-font-weight: bold; -fx-text-fill: #5a3cff;"/>
+            <Label text=" 本书"/>
+        </HBox>
+
+        <!-- 书籍表格 -->
+        <TableView fx:id="booksTable" layoutX="20" layoutY="100" prefWidth="860" prefHeight="480">
+            <columns>
+                <TableColumn text="书名" prefWidth="200">
+                    <cellValueFactory><PropertyValueFactory property="title"/></cellValueFactory>
+                </TableColumn>
+                <TableColumn text="作者" prefWidth="150">
+                    <cellValueFactory><PropertyValueFactory property="author"/></cellValueFactory>
+                </TableColumn>
+                <TableColumn text="总库存" prefWidth="100">
+                    <cellValueFactory><PropertyValueFactory property="total"/></cellValueFactory>
+                </TableColumn>
+                <TableColumn text="可借数量" prefWidth="100">
+                    <cellValueFactory><PropertyValueFactory property="available"/></cellValueFactory>
+                </TableColumn>
+                <TableColumn text="操作" prefWidth="180">
+                    <!-- 操作列在Controller中通过代码自定义单元格 -->
+                </TableColumn>
+            </columns>
+        </TableView>
+
+        <!-- 底部分页 -->
+        <HBox layoutX="20" layoutY="590" spacing="10" alignment="CENTER_RIGHT" prefWidth="860">
+            <Button fx:id="prevPageBtn" text="❮ 上一页" onAction="#handlePreviousPage"
+                    style="-fx-background-color: #e0e0e0;"/>
+            <Label fx:id="pageInfoLabel" text="1/1" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+            <Button fx:id="nextPageBtn" text="下一页 ❯" onAction="#handleNextPage"
+                    style="-fx-background-color: #e0e0e0;"/>
+        </HBox>
+    </children>
 </AnchorPane>

@@ -16,7 +16,7 @@ import java.util.prefs.Preferences;
 
 public class BaseController {
 
-    private static final String BASE_URL = "http://10.27.241.94:8081/api";
+    static final String BASE_URL = "http://localhost:8081/api";
     private static final String LOGOUT_URL = BASE_URL + "/auth/logout";
     // 使用 Java Preferences API 作为全局 Token 存储，避免跨 Controller 传参
     protected static final Preferences prefs = Preferences.userNodeForPackage(BaseController.class);

@@ -16,6 +16,9 @@ import java.util.prefs.Preferences;
 
 public class BaseController {
 
+    @FXML
+    private HBox navigationBar;
+
     static final String BASE_URL = "http://localhost:8081/api";
     private static final String LOGOUT_URL = BASE_URL + "/auth/logout";
     // 使用 Java Preferences API 作为全局 Token 存储，避免跨 Controller 传参
@@ -87,21 +90,19 @@ public class BaseController {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
             Scene scene = new Scene(loader.load(), width, height);
-            // 通过当前任意 UI 元素安全获取 Stage
             Stage stage = getCurrentStage();
             if (stage != null) {
                 stage.setScene(scene);
                 stage.setTitle(title);
+                stage.setMaximized(false);
+                stage.setMaximized(true);
             }
         } catch (IOException e) {
             e.printStackTrace();
-            showAlert("错误", "无法加载页面: " + fxmlPath, Alert.AlertType.ERROR);
+            showAlert("错误", "页面加载失败: " + fxmlPath, Alert.AlertType.ERROR);
         }
     }
 
-    /**
-     * 跳转到登录页并重置窗口状态
-     */
     private void navigateToLogin(String warningMsg) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/example/sdubooks/login-view.fxml"));
@@ -129,7 +130,9 @@ public class BaseController {
      * 子类如有特定 UI 组件可重写此方法提供更可靠的引用
      */
     protected Stage getCurrentStage() {
-        // 优先尝试通过场景图获取，若 Base 未绑定具体控件则由子类覆盖
+        if (navigationBar != null && navigationBar.getScene() != null) {
+            return (Stage) navigationBar.getScene().getWindow();
+        }
         return null;
     }
 

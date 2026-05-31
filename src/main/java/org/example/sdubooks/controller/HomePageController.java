@@ -1,5 +1,7 @@
 package org.example.sdubooks.controller;
 
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
 import javafx.scene.layout.GridPane;
@@ -17,21 +19,25 @@ import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import okhttp3.*;
 import org.example.sdubooks.model.HomeStats;
+import org.example.sdubooks.model.HotBook;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class HomePageController extends BaseController {
 
     @FXML private Label bookCountLabel;
     @FXML private Label borrowCountLabel;
     @FXML private Label userCountLabel;
-    @FXML private GridPane categoryGrid; // 确保 FXML 中 GridPane 的 fx:id 是 categoryGrid
+    @FXML private GridPane categoryGrid;
 
-    private final OkHttpClient client = new OkHttpClient();
-    private final Gson gson = new Gson();
+    private static final String STATS_URL = BASE_URL + "/home/stats";
+    private static final String HOT_BOOKS_URL = BASE_URL + "/home/hot-books";
 
-    private static final String BASE_URL = "http://10.27.241.94:8081/api/home";
-    private static final String STATS_URL = BASE_URL + "/stats";
+    // 书名 -> bookId 映射，用于点击卡片时传递 ID
+    private final Map<String, Long> bookIdMap = new HashMap<>();
 
     // 数据定义 —— 所有分类一目了然
     private static final String[][] CATEGORIES = {
@@ -46,7 +52,9 @@ public class HomePageController extends BaseController {
     public void initialize() {
         // 1. 加载统计数据
         fetchStatsData();
-        // 2. 动态生成图书分类
+        // 2. 加载热门书籍数据
+        fetchHotBooks();
+        // 3. 动态生成图书分类
         initCategoryGrid();
     }
 
@@ -84,7 +92,7 @@ public class HomePageController extends BaseController {
                 .get()
                 .build();
 
-        client.newCall(request).enqueue(new Callback() {
+        httpClient.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
@@ -102,6 +110,47 @@ public class HomePageController extends BaseController {
                         borrowCountLabel.setText(String.valueOf(stats.getBorrowCount()));
                         userCountLabel.setText(String.valueOf(stats.getUserCount()));
                     });
+                }
+            }
+        });
+    }
+
+    /**
+     * 获取热门书籍数据，建立书名 -> bookId 映射
+     */
+    private void fetchHotBooks() {
+        Request request = new Request.Builder()
+                .url(HOT_BOOKS_URL)
+                .get()
+                .build();
+
+        httpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                System.out.println("[DEBUG] 获取热门书籍失败: " + e.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful() && response.body() != null) {
+                    String jsonData = response.body().string();
+                    System.out.println("[DEBUG] 热门书籍响应: " + jsonData);
+
+                    // 后端返回 {"code":200, "data":[...]} 包装格式，提取 data 数组
+                    JsonObject json = gson.fromJson(jsonData, JsonObject.class);
+                    if (json.has("data") && json.get("data").isJsonArray()) {
+                        List<HotBook> hotBooks = gson.fromJson(
+                                json.getAsJsonArray("data"),
+                                new TypeToken<List<HotBook>>(){}.getType());
+                        for (HotBook book : hotBooks) {
+                            if (book.getId() != null) {
+                                bookIdMap.put(book.getTitle(), book.getId());
+                            }
+                        }
+                        System.out.println("[DEBUG] 已加载 " + bookIdMap.size() + " 本热门书籍ID");
+                    } else {
+                        System.out.println("[DEBUG] 响应中没有 data 数组: " + jsonData);
+                    }
                 }
             }
         });
@@ -138,7 +187,45 @@ public class HomePageController extends BaseController {
         String bookName = (String) card.getUserData();
         System.out.println("点击了书籍卡片按钮: " + bookName);
 
-        navigateTo("/org/example/sdubooks/book-detail.fxml", "图书详情: " + bookName, (Node) event.getSource());
+        Long bookId = bookIdMap.get(bookName);
+        if (bookId == null) {
+            System.out.println("[DEBUG] 未找到书籍ID: " + bookName + "，bookIdMap: " + bookIdMap);
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("提示");
+            alert.setHeaderText(null);
+            alert.setContentText("无法获取书籍信息，请稍后重试");
+            alert.showAndWait();
+            return;
+        }
+
+        navigateToBookDetail(bookId, bookName, (Node) event.getSource());
+    }
+
+    /**
+     * 跳转到图书详情页并传递 bookId
+     */
+    private void navigateToBookDetail(Long bookId, String bookName, Node sourceNode) {
+        try {
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/example/sdubooks/book-detail.fxml"));
+            Scene scene = new Scene(fxmlLoader.load());
+
+            BookDetailController controller = fxmlLoader.getController();
+            controller.setBookId(bookId);
+
+            Stage stage = (Stage) sourceNode.getScene().getWindow();
+            stage.setScene(scene);
+            stage.setTitle("图书详情: " + bookName);
+            stage.setMaximized(false);
+            stage.setMaximized(true);
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("错误");
+            alert.setHeaderText(null);
+            alert.setContentText("无法加载图书详情页");
+            alert.showAndWait();
+        }
     }
 
     // ==========================================
@@ -154,12 +241,13 @@ public class HomePageController extends BaseController {
     private void navigateTo(String fxmlPath, String title, Node sourceNode) {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource(fxmlPath));
-            Scene scene = new Scene(fxmlLoader.load(), 450, 650);
+            Scene scene = new Scene(fxmlLoader.load());
 
-            // ✅ 正确获取 Stage 的方式：从触发事件的节点往上找
             Stage stage = (Stage) sourceNode.getScene().getWindow();
             stage.setScene(scene);
             stage.setTitle(title);
+            stage.setMaximized(false);
+            stage.setMaximized(true);
             stage.show();
 
         } catch (IOException e) {

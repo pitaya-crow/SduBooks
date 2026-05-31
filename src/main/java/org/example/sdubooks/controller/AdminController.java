@@ -2,6 +2,7 @@ package org.example.sdubooks.controller;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.layout.AnchorPane;
@@ -50,11 +51,15 @@ public class AdminController extends BaseController {
         updateActiveButton("statBtn");
     }
 
-    // 加载指定 FXML 到 contentPane
+    // 加载指定 FXML 到 contentPane（支持任意根节点类型）
     private void loadContent(String fxmlPath) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
-            AnchorPane page = loader.load();
+            Node page = loader.load();
+            AnchorPane.setTopAnchor(page, 0.0);
+            AnchorPane.setBottomAnchor(page, 0.0);
+            AnchorPane.setLeftAnchor(page, 0.0);
+            AnchorPane.setRightAnchor(page, 0.0);
             contentPane.getChildren().setAll(page);
         } catch (Exception e) {
             e.printStackTrace();
@@ -68,8 +73,9 @@ public class AdminController extends BaseController {
             if (node instanceof Button btn) {
                 boolean isActive = btn.getId() != null && btn.getId().equals(activeId);
                 btn.setStyle(isActive ?
-                        "-fx-alignment: LEFT; -fx-padding: 14px 20px; -fx-background-color: #f0f0ff; -fx-text-fill: #5a3cff; -fx-font-weight: bold;" :
-                        "-fx-alignment: LEFT; -fx-padding: 14px 20px; -fx-background-color: transparent; -fx-text-fill: #333;");
+                        "-fx-alignment: CENTER_LEFT; -fx-padding: 12 16; -fx-background-color: #ede9fe; -fx-text-fill: #5a3cff; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 10; -fx-cursor: hand;" :
+                        "-fx-alignment: CENTER_LEFT; -fx-padding: 12 16; -fx-background-color: transparent; -fx-text-fill: #475569; -fx-font-size: 14px; -fx-background-radius: 10; -fx-cursor: hand;");
+                btn.setMaxWidth(Double.MAX_VALUE);
             }
         });
     }

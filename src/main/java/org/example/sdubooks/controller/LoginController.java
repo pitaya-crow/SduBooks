@@ -27,12 +27,13 @@ public class LoginController {
     @FXML private Label subTitleLabel;
     @FXML private Button registerBtn;
     @FXML private Hyperlink switchLink;
+    @FXML private Label testAccountLabel;
 
     // ==================== 状态与配置 ====================
     // true: 管理员模式 | false: 普通用户模式
     private boolean isAdminMode = false;
 
-    private static final String BASE_URL = "http://10.27.241.94:8081/api/auth";
+    private static final String BASE_URL = "http://localhost:8081/api";
     private static final String LOGIN_URL = BASE_URL + "/login";
     private static final String REGISTER_URL = BASE_URL + "/register";
 
@@ -55,24 +56,24 @@ public class LoginController {
     public void setAdminMode(boolean isAdmin) {
         this.isAdminMode = isAdmin;
 
-        // 切换模式时清空输入框，防止串号
         if (usernameField != null) usernameField.clear();
         if (passwordField != null) passwordField.clear();
 
-        // 更新差异化 UI 组件
         if (titleLabel != null) {
             if (isAdmin) {
                 titleLabel.setText("管理员登录");
                 subTitleLabel.setText("图书管理系统后台");
                 registerBtn.setVisible(false);
-                registerBtn.setManaged(false);   // 释放布局空间，避免空白断层
+                registerBtn.setManaged(false);
                 switchLink.setText("返回用户端登录");
+                testAccountLabel.setText("测试账号：admin / admin");
             } else {
                 titleLabel.setText("用户登录");
                 subTitleLabel.setText("图书管理系统");
                 registerBtn.setVisible(true);
                 registerBtn.setManaged(true);
                 switchLink.setText("切换到管理员登录");
+                testAccountLabel.setText("测试账号：user / user");
             }
         }
     }
@@ -122,7 +123,7 @@ public class LoginController {
                 // 登录成功，根据后端返回的 role 字段动态跳转
                 String role = result.getData() != null ? result.getData().getRole() : null;
                 if ("ADMIN".equals(role)) {
-                    navigateTo("/org/example/sdubooks/admin-homepage-view.fxml", "管理员后台", false);
+                    navigateTo("/org/example/sdubooks/admin-home.fxml", "管理员后台",true);
                 } else {
                     navigateTo("/org/example/sdubooks/homepage-view.fxml", "图书管理系统", true);
                 }
@@ -172,14 +173,17 @@ public class LoginController {
         new Thread(() -> {
             try {
                 String jsonBody = gson.toJson(data);
+                System.out.println("[DEBUG] 请求URL: " + url);
+                System.out.println("[DEBUG] 请求体: " + jsonBody);
                 RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json; charset=utf-8"));
                 Request request = new Request.Builder().url(url).post(body).build();
 
                 try (Response response = httpClient.newCall(request).execute()) {
+                    System.out.println("[DEBUG] HTTP状态码: " + response.code());
                     if (response.body() != null) {
                         String responseBody = response.body().string();
+                        System.out.println("[DEBUG] 响应体: " + responseBody);
                         LoginResponse result = gson.fromJson(responseBody, LoginResponse.class);
-                        // 切回 JavaFX 主线程更新 UI
                         javafx.application.Platform.runLater(() -> handler.onSuccess(result));
                     }
                 }

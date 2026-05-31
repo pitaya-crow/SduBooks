@@ -1,5 +1,6 @@
 package org.example.sdubooks.controller;
 
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -35,7 +36,7 @@ public class UserManagementController extends BaseController {
     private long totalElements = 0;
 
     // 接口路径
-    private static final String BASE_URL = "http://10.27.241.94:8081/api/admin";
+    private static final String BASE_URL = "http://localhost:8081/api/admin";
     private static final String USERS_URL = BASE_URL + "/admin/users";
     private static final String UPDATE_STATUS_URL = BASE_URL + "/admin/users/%d/status";
     private static final String DELETE_USER_URL = BASE_URL + "/admin/users/%d";
@@ -138,6 +139,19 @@ public class UserManagementController extends BaseController {
 
     // ==================== 数据加载 ====================
 
+    /**
+     * 从包装响应中提取 data 字段
+     */
+    private String extractData(String responseBody) {
+        try {
+            JsonObject json = gson.fromJson(responseBody, JsonObject.class);
+            if (json.has("data")) {
+                return json.get("data").toString();
+            }
+        } catch (Exception ignored) {}
+        return responseBody;
+    }
+
     // 加载用户列表
     private void loadUsers(int page) {
         String token = getToken();
@@ -161,13 +175,20 @@ public class UserManagementController extends BaseController {
 
                 try (Response response = httpClient.newCall(request).execute()) {
                     if (response.isSuccessful()) {
+                        String respBody = response.body().string();
+                        System.out.println("[DEBUG] 用户列表响应: " + respBody);
+
                         PageResponse<User> pageResponse = gson.fromJson(
-                                response.body().string(),
+                                extractData(respBody),
                                 new TypeToken<PageResponse<User>>(){}.getType()
                         );
 
                         Platform.runLater(() -> {
-                            userList.setAll(pageResponse.getContent());
+                            if (pageResponse.getContent() != null) {
+                                userList.setAll(pageResponse.getContent());
+                            } else {
+                                userList.clear();
+                            }
                             totalElements = pageResponse.getTotalElements();
                             totalPages = pageResponse.getTotalPages();
                             currentPage = pageResponse.getPageNumber();

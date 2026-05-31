@@ -1,5 +1,6 @@
 package org.example.sdubooks.controller;
 
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -24,7 +25,7 @@ public class BorrowStatisticsController extends BaseController {
     @FXML private VBox categoryChartBox;
     @FXML private VBox borrowRankBox;
 
-    private static final String BASE_URL = "http://10.27.241.94:8081/api/admin";
+    private static final String BASE_URL = "http://localhost:8081/api/admin";
     private static final String STATS_URL = BASE_URL + "/borrow/stats";
     private static final String TREND_URL = BASE_URL + "/borrow/trend";
     private static final String CATEGORY_URL = BASE_URL + "/borrow/category";
@@ -51,6 +52,19 @@ public class BorrowStatisticsController extends BaseController {
         }).start();
     }
 
+    /**
+     * 从包装响应中提取 data 字段
+     */
+    private String extractData(String responseBody) {
+        try {
+            JsonObject json = gson.fromJson(responseBody, JsonObject.class);
+            if (json.has("data")) {
+                return json.get("data").toString();
+            }
+        } catch (Exception ignored) {}
+        return responseBody;
+    }
+
     private void loadStats() {
         String token = getToken();
         if (token == null) return;
@@ -62,7 +76,8 @@ public class BorrowStatisticsController extends BaseController {
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (response.isSuccessful()) {
-                BorrowStats stats = gson.fromJson(response.body().string(), BorrowStats.class);
+                String respBody = response.body().string();
+                BorrowStats stats = gson.fromJson(extractData(respBody), BorrowStats.class);
                 Platform.runLater(() -> {
                     totalBorrowLabel.setText(String.valueOf(stats.getTotalBorrowCount()));
                     totalReturnLabel.setText(String.valueOf(stats.getTotalReturnCount()));
@@ -93,8 +108,9 @@ public class BorrowStatisticsController extends BaseController {
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (response.isSuccessful()) {
+                String respBody = response.body().string();
                 List<BorrowTrend> trends = gson.fromJson(
-                        response.body().string(),
+                        extractData(respBody),
                         new TypeToken<List<BorrowTrend>>(){}.getType()
                 );
                 Platform.runLater(() -> renderTrendChart(trends));
@@ -153,8 +169,9 @@ public class BorrowStatisticsController extends BaseController {
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (response.isSuccessful()) {
+                String respBody = response.body().string();
                 List<CategoryStats> categories = gson.fromJson(
-                        response.body().string(),
+                        extractData(respBody),
                         new TypeToken<List<CategoryStats>>(){}.getType()
                 );
                 Platform.runLater(() -> renderCategoryChart(categories));
@@ -212,8 +229,9 @@ public class BorrowStatisticsController extends BaseController {
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (response.isSuccessful()) {
+                String respBody = response.body().string();
                 List<HotBook> books = gson.fromJson(
-                        response.body().string(),
+                        extractData(respBody),
                         new TypeToken<List<HotBook>>(){}.getType()
                 );
                 Platform.runLater(() -> renderBorrowRank(books));

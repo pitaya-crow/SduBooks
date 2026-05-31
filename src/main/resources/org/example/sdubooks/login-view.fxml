@@ -6,14 +6,13 @@
 <?import javafx.scene.text.*?>
 <?import javafx.scene.shape.Circle?>
 
-<TilePane xmlns:fx="http://javafx.com/fxml"
-          fx:controller="org.example.sdubooks.controller.LoginController"
-          style="-fx-background-color: #f5f3ff;">
+<StackPane xmlns:fx="http://javafx.com/fxml"
+           fx:controller="org.example.sdubooks.controller.LoginController"
+           style="-fx-background-color: #f5f3ff;">
 
     <VBox alignment="CENTER" spacing="30.0"
           style="-fx-background-color: white; -fx-background-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 20, 0, 0, 5);"
-          maxWidth="450" minWidth="450"
-          VBox.vgrow="ALWAYS">
+          maxWidth="450" minWidth="450" maxHeight="600">
         <padding>
             <Insets top="50.0" bottom="50.0" left="40.0" right="40.0"/>
         </padding>
@@ -66,12 +65,12 @@
                     maxWidth="Infinity"/>
         </VBox>
 
-        <!-- 测试账号提示：两种模式均固定显示 -->
-        <Label text="测试账号：admin / admin"
+        <!-- 测试账号提示：两种模式均会动态显示 -->
+        <Label fx:id="testAccountLabel" text="测试账号：user / user"
                style="-fx-font-size: 13px; -fx-text-fill: #94a3b8;"/>
 
         <!-- 底部切换链接 -->
         <Hyperlink fx:id="switchLink" text="切换到管理员登录" onAction="#toggleLoginMode"
                    style="-fx-text-fill: #3b82f6; -fx-font-size: 14px;"/>
     </VBox>
-</TilePane>
+</StackPane>

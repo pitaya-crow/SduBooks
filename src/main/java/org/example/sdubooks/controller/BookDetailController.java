@@ -205,7 +205,16 @@ public class BookDetailController extends BaseController {
 
     @FXML
     private void handleBorrow() {
-        if (currentBook == null) return;
+        if (currentBook == null) {
+            showAlert("错误", "图书信息未加载，请稍后重试", Alert.AlertType.ERROR);
+            return;
+        }
+
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            showAlert("错误", "无法获取用户信息，请重新登录", Alert.AlertType.ERROR);
+            return;
+        }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("确认借阅");
@@ -221,19 +230,27 @@ public class BookDetailController extends BaseController {
 
     private void performBorrow() {
         String token = getToken();
-        
+        Long userId = getCurrentUserId();
+
         JsonObject borrowData = new JsonObject();
         borrowData.addProperty("bookId", bookId);
-        borrowData.addProperty("userId", getCurrentUserId());
+        borrowData.addProperty("userId", userId);
+
+        String jsonBody = gson.toJson(borrowData);
+        System.out.println("[DEBUG] 借阅请求 URL: " + BORROW_URL);
+        System.out.println("[DEBUG] 借阅请求 Body: " + jsonBody);
 
         Request request = new Request.Builder()
                 .url(BORROW_URL)
                 .header("Authorization", "Bearer " + token)
-                .post(RequestBody.create(gson.toJson(borrowData), MediaType.get("application/json")))
+                .post(RequestBody.create(jsonBody, MediaType.get("application/json")))
                 .build();
 
         new Thread(() -> {
             try (Response response = httpClient.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                System.out.println("[DEBUG] 借阅响应 Code: " + response.code());
+                System.out.println("[DEBUG] 借阅响应 Body: " + responseBody);
                 if (response.isSuccessful()) {
                     Platform.runLater(() -> {
                         showAlert("成功", "借阅成功！", Alert.AlertType.INFORMATION);
@@ -241,13 +258,13 @@ public class BookDetailController extends BaseController {
                     });
                 } else {
                     Platform.runLater(() ->
-                            showAlert("错误", "借阅失败，请稍后重试", Alert.AlertType.ERROR)
+                            showAlert("错误", "借阅失败: " + responseBody, Alert.AlertType.ERROR)
                     );
                 }
             } catch (IOException e) {
                 e.printStackTrace();
                 Platform.runLater(() ->
-                        showAlert("错误", "网络请求失败", Alert.AlertType.ERROR)
+                        showAlert("错误", "网络请求失败: " + e.getMessage(), Alert.AlertType.ERROR)
                 );
             }
         }).start();
@@ -255,16 +272,31 @@ public class BookDetailController extends BaseController {
 
     private Long getCurrentUserId() {
         String token = getToken();
-        if (token == null) return null;
-        
+        if (token == null) {
+            System.out.println("[DEBUG] Token 为 null");
+            return null;
+        }
+
         try {
             String[] parts = token.split("\\.");
             if (parts.length >= 2) {
                 String payload = new String(java.util.Base64.getUrlDecoder().decode(parts[1]));
+                System.out.println("[DEBUG] JWT payload: " + payload);
                 JsonObject json = gson.fromJson(payload, JsonObject.class);
-                if (json.has("userId")) {
-                    return json.get("userId").getAsLong();
+                // 尝试多种可能的 claim 名称
+                String[] claimNames = {"userId", "id", "sub", "user_id"};
+                for (String claim : claimNames) {
+                    if (json.has(claim)) {
+                        try {
+                            Long id = json.get(claim).getAsLong();
+                            System.out.println("[DEBUG] 从 claim '" + claim + "' 获取到 userId: " + id);
+                            return id;
+                        } catch (NumberFormatException ignored) {
+                            // sub 字段可能是字符串，不是数字
+                        }
+                    }
                 }
+                System.out.println("[DEBUG] JWT 中未找到用户ID字段，可用字段: " + json.keySet());
             }
         } catch (Exception e) {
             e.printStackTrace();

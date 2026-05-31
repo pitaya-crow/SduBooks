@@ -1,5 +1,6 @@
 package org.example.sdubooks.controller;
 
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -9,7 +10,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
-import javafx.scene.text.Text;
 import org.example.sdubooks.model.*;
 import okhttp3.*;
 
@@ -34,7 +34,7 @@ public class DashboardController extends BaseController {
     // ===== 活跃用户 =====
     @FXML private VBox activeUsersBox;
 
-    private static final String BASE_URL = "http://10.27.241.94:8081/api/admin";
+    private static final String BASE_URL = "http://localhost:8081/api/admin";
     // 接口路径（保持与文档一致）
     private static final String STATS_URL = BASE_URL + "/dashboard/stats";
     private static final String RECENT_URL = BASE_URL + "/dashboard/recent";
@@ -64,6 +64,20 @@ public class DashboardController extends BaseController {
         }).start();
     }
 
+    /**
+     * 从包装响应中提取 data 字段的 JSON 字符串
+     * 后端返回 {"code":200, "data":{...}} 格式
+     */
+    private String extractData(String responseBody) {
+        try {
+            JsonObject json = gson.fromJson(responseBody, JsonObject.class);
+            if (json.has("data")) {
+                return json.get("data").toString();
+            }
+        } catch (Exception ignored) {}
+        return responseBody; // 如果不是包装格式，直接返回原内容
+    }
+
     // 加载统计卡片数据
     private void loadStats() {
         String token = getToken();
@@ -76,7 +90,8 @@ public class DashboardController extends BaseController {
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (response.isSuccessful()) {
-                DashboardStats stats = gson.fromJson(response.body().string(), DashboardStats.class);
+                String respBody = response.body().string();
+                DashboardStats stats = gson.fromJson(extractData(respBody), DashboardStats.class);
                 Platform.runLater(() -> {
                     totalBooksLabel.setText(String.valueOf(stats.getTotalBooks()));
                     borrowedBooksLabel.setText(String.valueOf(stats.getBorrowedBooks()));
@@ -101,8 +116,9 @@ public class DashboardController extends BaseController {
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (response.isSuccessful()) {
+                String respBody = response.body().string();
                 List<RecentBorrow> borrows = gson.fromJson(
-                        response.body().string(),
+                        extractData(respBody),
                         new TypeToken<List<RecentBorrow>>(){}.getType()
                 );
                 Platform.runLater(() -> renderRecentActivities(borrows));
@@ -117,27 +133,23 @@ public class DashboardController extends BaseController {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd HH:mm");
 
         for (RecentBorrow borrow : borrows) {
-            HBox activityItem = new HBox(10);
-            activityItem.setStyle("-fx-padding: 12px 0; -fx-border-bottom: 1px solid #f0f0f0;");
+            HBox activityItem = new HBox(12);
+            activityItem.setStyle("-fx-padding: 10 0; -fx-alignment: CENTER_LEFT; -fx-border-color: transparent transparent #f1f5f9 transparent; -fx-border-width: 0 0 1 0;");
 
-            Circle statusDot = new Circle(8);
-            statusDot.setFill(borrow.getBookName().contains("借阅") ?
-                    javafx.scene.paint.Color.web("#4CAF50") :
-                    javafx.scene.paint.Color.web("#FF9800"));
+            Circle statusDot = new Circle(5);
+            statusDot.setFill(javafx.scene.paint.Color.web("#22c55e"));
 
-            Text activityText = new Text(
-                    borrow.getBookName() + " " +
-                            borrow.getUserName() + " " +
-                            (borrow.getBookName().contains("借阅") ? "借阅了" : "归还了")
+            Label activityText = new Label(
+                    borrow.getUserName() + " " +
+                            (borrow.getBookName().contains("借阅") ? "借阅了" : "归还了") + " " +
+                            borrow.getBookName()
             );
-            activityText.setStyle("-fx-font-size: 14px; -fx-fill: #333;");
-
-            Text timeText = new Text(
-                    borrow.getTimestamp().format(formatter) + "前"
-            );
-            timeText.setStyle("-fx-font-size: 12px; -fx-fill: #999; -fx-text-alignment: right;");
-
+            activityText.setStyle("-fx-font-size: 14px; -fx-text-fill: #334155;");
             HBox.setHgrow(activityText, Priority.ALWAYS);
+
+            Label timeText = new Label(borrow.getTimestamp().format(formatter));
+            timeText.setStyle("-fx-font-size: 12px; -fx-text-fill: #94a3b8;");
+
             activityItem.getChildren().addAll(statusDot, activityText, timeText);
             recentActivitiesBox.getChildren().add(activityItem);
         }
@@ -155,8 +167,9 @@ public class DashboardController extends BaseController {
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (response.isSuccessful()) {
+                String respBody = response.body().string();
                 List<HotBook> books = gson.fromJson(
-                        response.body().string(),
+                        extractData(respBody),
                         new TypeToken<List<HotBook>>(){}.getType()
                 );
                 Platform.runLater(() -> renderHotBooks(books));
@@ -170,25 +183,27 @@ public class DashboardController extends BaseController {
         hotBooksBox.getChildren().clear();
         for (int i = 0; i < Math.min(books.size(), 5); i++) {
             HotBook book = books.get(i);
-            HBox bookItem = new HBox(10);
-            bookItem.setStyle("-fx-padding: 8px 0;");
+            HBox bookItem = new HBox(12);
+            bookItem.setStyle("-fx-padding: 10 8; -fx-alignment: CENTER_LEFT; -fx-background-color: #f8fafc; -fx-background-radius: 8;");
 
             Label rank = new Label(String.valueOf(i + 1));
-            rank.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #5a3cff; -fx-min-width: 24px;");
+            String rankColor = i == 0 ? "#f59e0b" : (i == 1 ? "#94a3b8" : (i == 2 ? "#cd7f32" : "#cbd5e1"));
+            rank.setStyle("-fx-font-weight: bold; -fx-font-size: 18px; -fx-text-fill: " + rankColor + "; -fx-min-width: 28px; -fx-alignment: CENTER;");
 
-            VBox content = new VBox(4);
+            VBox content = new VBox(2);
             content.setStyle("-fx-alignment: CENTER_LEFT;");
+            HBox.setHgrow(content, Priority.ALWAYS);
 
             Label title = new Label(book.getTitle());
-            title.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+            title.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
 
             Label author = new Label(book.getAuthor());
-            author.setStyle("-fx-font-size: 12px; -fx-text-fill: #666;");
+            author.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
 
             content.getChildren().addAll(title, author);
 
-            Label count = new Label(book.getBorrowCount() + "次");
-            count.setStyle("-fx-font-size: 14px; -fx-text-fill: #4CAF50; -fx-font-weight: bold;");
+            Label count = new Label(book.getBorrowCount() + " 次");
+            count.setStyle("-fx-font-size: 14px; -fx-text-fill: #3b82f6; -fx-font-weight: bold;");
 
             bookItem.getChildren().addAll(rank, content, count);
             hotBooksBox.getChildren().add(bookItem);
@@ -207,8 +222,9 @@ public class DashboardController extends BaseController {
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (response.isSuccessful()) {
+                String respBody = response.body().string();
                 List<ActiveUser> users = gson.fromJson(
-                        response.body().string(),
+                        extractData(respBody),
                         new TypeToken<List<ActiveUser>>(){}.getType()
                 );
                 Platform.runLater(() -> renderActiveUsers(users));
@@ -222,27 +238,33 @@ public class DashboardController extends BaseController {
         activeUsersBox.getChildren().clear();
         for (int i = 0; i < Math.min(users.size(), 4); i++) {
             ActiveUser user = users.get(i);
-            HBox userItem = new HBox(10);
-            userItem.setStyle("-fx-padding: 8px 0;");
+            HBox userItem = new HBox(12);
+            userItem.setStyle("-fx-padding: 10 8; -fx-alignment: CENTER_LEFT; -fx-background-color: #f8fafc; -fx-background-radius: 8;");
 
-            Label rank = new Label(String.valueOf(i + 1));
-            rank.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #5a3cff; -fx-min-width: 24px;");
+            // 头像圆圈
+            javafx.scene.layout.StackPane avatar = new javafx.scene.layout.StackPane();
+            avatar.setStyle("-fx-background-color: #ede9fe; -fx-background-radius: 16; -fx-min-width: 32; -fx-max-width: 32; -fx-min-height: 32; -fx-max-height: 32;");
+            Label avatarText = new Label(user.getName() != null && !user.getName().isEmpty() ?
+                    user.getName().substring(0, 1).toUpperCase() : "?");
+            avatarText.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #7c3aed;");
+            avatar.getChildren().add(avatarText);
 
-            VBox content = new VBox(4);
+            VBox content = new VBox(2);
             content.setStyle("-fx-alignment: CENTER_LEFT;");
+            HBox.setHgrow(content, Priority.ALWAYS);
 
             Label name = new Label(user.getName());
-            name.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+            name.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
 
             Label email = new Label(user.getEmail());
-            email.setStyle("-fx-font-size: 12px; -fx-text-fill: #666;");
+            email.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
 
             content.getChildren().addAll(name, email);
 
-            Label count = new Label(user.getBorrowCount() + "本");
-            count.setStyle("-fx-font-size: 14px; -fx-text-fill: #4CAF50; -fx-font-weight: bold;");
+            Label count = new Label(user.getBorrowCount() + " 本");
+            count.setStyle("-fx-font-size: 14px; -fx-text-fill: #22c55e; -fx-font-weight: bold;");
 
-            userItem.getChildren().addAll(rank, content, count);
+            userItem.getChildren().addAll(avatar, content, count);
             activeUsersBox.getChildren().add(userItem);
         }
     }

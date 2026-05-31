@@ -365,7 +365,26 @@ public class SelfController extends BaseController {
 
     private void viewBookDetail(Long bookId) {
         System.out.println("查看图书详情，图书ID: " + bookId);
-        navigateTo("/org/example/sdubooks/book-detail.fxml", "图书详情", 800, 600);
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                    getClass().getResource("/org/example/sdubooks/book-detail.fxml"));
+            javafx.scene.Scene scene = new javafx.scene.Scene(loader.load());
+
+            BookDetailController controller = loader.getController();
+            controller.setBookId(bookId);
+
+            Stage stage = getCurrentStage();
+            if (stage != null) {
+                stage.setScene(scene);
+                stage.setTitle("图书详情");
+                stage.setMaximized(false);
+                stage.setMaximized(true);
+                stage.show();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("错误", "无法加载图书详情页", javafx.scene.control.Alert.AlertType.ERROR);
+        }
     }
 
     @Override

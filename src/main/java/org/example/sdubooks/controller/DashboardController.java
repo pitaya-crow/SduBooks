@@ -160,16 +160,19 @@ public class DashboardController extends BaseController {
             HBox activityItem = new HBox(12);
             activityItem.setStyle("-fx-padding: 10 0; -fx-alignment: CENTER_LEFT; -fx-border-color: transparent transparent #f1f5f9 transparent; -fx-border-width: 0 0 1 0;");
 
+            // 状态圆点：已归还=绿色，借阅中=蓝色
             Circle statusDot = new Circle(5);
-            statusDot.setFill(javafx.scene.paint.Color.web("#22c55e"));
+            boolean returned = borrow.getStatus() != null && borrow.getStatus() == 0;
+            statusDot.setFill(javafx.scene.paint.Color.web(returned ? "#22c55e" : "#3b82f6"));
 
-            String bookName = borrow.getBookName() != null ? borrow.getBookName() : "";
-            String userName = borrow.getUserName() != null ? borrow.getUserName() : "";
-            Label activityText = new Label(userName + " 借阅了 " + bookName);
+            String userName = borrow.getUserName() != null ? borrow.getUserName() : "用户";
+            String bookTitle = borrow.getBookTitle() != null ? borrow.getBookTitle() : "图书";
+            String action = returned ? "归还了" : "借阅了";
+            Label activityText = new Label(userName + " " + action + " 《" + bookTitle + "》");
             activityText.setStyle("-fx-font-size: 14px; -fx-text-fill: #334155;");
             HBox.setHgrow(activityText, Priority.ALWAYS);
 
-            Label timeText = new Label(borrow.getTimestamp() != null ? borrow.getTimestamp().format(formatter) : "");
+            Label timeText = new Label(borrow.getBorrowedAt() != null ? borrow.getBorrowedAt().format(formatter) : "");
             timeText.setStyle("-fx-font-size: 12px; -fx-text-fill: #94a3b8;");
 
             activityItem.getChildren().addAll(statusDot, activityText, timeText);

@@ -55,7 +55,7 @@
 
         <!-- 最近活动 -->
         <VBox spacing="12" style="-fx-padding: 20; -fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 6, 0, 1, 0);">
-            <Label text="📋 最近活动" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+            <Label text="📋 本周活动" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
             <Separator/>
             <VBox fx:id="recentActivitiesBox" spacing="8"/>
         </VBox>

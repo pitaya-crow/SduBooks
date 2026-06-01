@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<!-- 逾期管理页面 -->
+<ScrollPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="org.example.sdubooks.controller.OverdueManagementController"
+            fitToWidth="true"
+            style="-fx-background-color: #f0f2f5;">
+    <VBox spacing="20" style="-fx-padding: 24; -fx-background-color: #f0f2f5;">
+
+        <!-- 页面标题 -->
+        <VBox spacing="4">
+            <Label text="⚠️ 逾期管理" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+            <Label text="查看和管理逾期未还的借阅记录" style="-fx-font-size: 14px; -fx-text-fill: #94a3b8;"/>
+        </VBox>
+
+        <!-- 统计卡片 -->
+        <HBox spacing="16">
+            <VBox spacing="8" HBox.hgrow="ALWAYS" maxWidth="Infinity"
+                  style="-fx-padding: 20; -fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 6, 0, 1, 0);">
+                <Label text="⚠️ 逾期记录数" style="-fx-font-size: 14px; -fx-text-fill: #64748b;"/>
+                <Label fx:id="overdueCountLabel" text="0" style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #ef4444;"/>
+            </VBox>
+            <VBox spacing="8" HBox.hgrow="ALWAYS" maxWidth="Infinity"
+                  style="-fx-padding: 20; -fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 6, 0, 1, 0);">
+                <Label text="💰 总欠费金额" style="-fx-font-size: 14px; -fx-text-fill: #64748b;"/>
+                <Label fx:id="totalFeeLabel" text="¥0.0" style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #f59e0b;"/>
+            </VBox>
+        </HBox>
+
+        <!-- 逾期列表 -->
+        <VBox fx:id="overdueListBox" spacing="12"/>
+
+    </VBox>
+</ScrollPane>

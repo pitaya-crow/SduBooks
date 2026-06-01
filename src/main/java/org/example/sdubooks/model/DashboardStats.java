@@ -1,14 +1,13 @@
 package org.example.sdubooks.model;
 
 public class DashboardStats {
-    private int totalBooks;
-    private int borrowedBooks;
-    private int registeredUsers;
-    private int overdueBooks;
+    private int bookCount;
+    private int borrowRecordCount;
+    private int userCount;
+    private int reviewCount;
 
-    // Getters (必须添加)
-    public int getTotalBooks() { return totalBooks; }
-    public int getBorrowedBooks() { return borrowedBooks; }
-    public int getRegisteredUsers() { return registeredUsers; }
-    public int getOverdueBooks() { return overdueBooks; }
+    public int getBookCount() { return bookCount; }
+    public int getBorrowRecordCount() { return borrowRecordCount; }
+    public int getUserCount() { return userCount; }
+    public int getReviewCount() { return reviewCount; }
 }

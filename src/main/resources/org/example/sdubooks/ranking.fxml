@@ -1,49 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx"
+<!-- 排行榜内容（由 MainShell 加载，不含导航栏） -->
+<ScrollPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="org.example.sdubooks.controller.RankingController"
-            prefHeight="800.0" prefWidth="600.0"
-            style="-fx-background-color: #f8fafc;">
-    <top>
-        <fx:include source="base.fxml"/>
-    </top>
+            fitToWidth="true"
+            style="-fx-background-color: #f0f2f5;">
+    <content>
+        <VBox spacing="20.0" style="-fx-padding: 20;">
+            <!-- 页面标题 -->
+            <HBox alignment="CENTER_LEFT" spacing="15.0" style="-fx-padding: 10 0;">
+                <Label text="🏆" style="-fx-font-size: 36px;"/>
+                <Label text="图书排行榜" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+            </HBox>
 
-    <center>
-        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;">
-            <content>
-                <VBox spacing="20.0" style="-fx-padding: 20;">
-                    <!-- 页面标题 -->
-                    <HBox alignment="CENTER_LEFT" spacing="15.0" style="-fx-padding: 10 0;">
-                        <Label text="🏆" style="-fx-font-size: 36px;"/>
-                        <Label text="图书排行榜" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
-                    </HBox>
+            <!-- 切换按钮 -->
+            <HBox spacing="10.0" alignment="CENTER" style="-fx-background-color: #f1f5f9; -fx-background-radius: 30; -fx-padding: 5;">
+                <Button fx:id="btnAll" text="🔥 借阅排行" onAction="#handleSwitchTab"
+                        style="-fx-background-color: #ffffff; -fx-background-radius: 25; -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1e293b; -fx-padding: 10 30; -fx-cursor: hand;"
+                        userData="borrow"/>
+                <Button fx:id="btnMonth" text="⭐ 评分排行" onAction="#handleSwitchTab"
+                        style="-fx-background-color: transparent; -fx-font-size: 16px; -fx-text-fill: #64748b; -fx-padding: 10 30; -fx-cursor: hand;"
+                        userData="rating"/>
+            </HBox>
 
-                    <!-- 切换按钮 -->
-                    <HBox spacing="10.0" alignment="CENTER" style="-fx-background-color: #f1f5f9; -fx-background-radius: 30; -fx-padding: 5;">
-                        <Button fx:id="btnAll" text=" 总排行" onAction="#handleSwitchTab"
-                                style="-fx-background-color: #ffffff; -fx-background-radius: 25; -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1e293b; -fx-padding: 10 30; -fx-cursor: hand;"
-                                userData="borrow"/>
-                        <Button fx:id="btnMonth" text="📅 本月" onAction="#handleSwitchTab"
-                                style="-fx-background-color: transparent; -fx-font-size: 16px; -fx-text-fill: #64748b; -fx-padding: 10 30; -fx-cursor: hand;"
-                                userData="month"/>
-                        <Button fx:id="btnWeek" text="📅 本周" onAction="#handleSwitchTab"
-                                style="-fx-background-color: transparent; -fx-font-size: 16px; -fx-text-fill: #64748b; -fx-padding: 10 30; -fx-cursor: hand;"
-                                userData="week"/>
-                    </HBox>
-
-                    <!-- 排行榜列表 -->
-                    <VBox fx:id="rankingList" spacing="15.0"/>
-                </VBox>
-            </content>
-        </ScrollPane>
-    </center>
-</BorderPane>
+            <!-- 排行榜列表 -->
+            <VBox fx:id="rankingList" spacing="15.0"/>
+        </VBox>
+    </content>
+</ScrollPane>

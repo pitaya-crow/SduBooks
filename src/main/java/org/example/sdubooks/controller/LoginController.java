@@ -125,7 +125,7 @@ public class LoginController {
                 if ("ADMIN".equals(role)) {
                     navigateTo("/org/example/sdubooks/admin-home.fxml", "管理员后台",true);
                 } else {
-                    navigateTo("/org/example/sdubooks/homepage-view.fxml", "图书管理系统", true);
+                    navigateTo("/org/example/sdubooks/main-shell.fxml", "图书管理系统", true);
                 }
             } else {
                 showAlert("登录失败", result.getMsg(), Alert.AlertType.ERROR);
@@ -155,13 +155,42 @@ public class LoginController {
         registerData.put("userName", username);
         registerData.put("password", password);
 
-        executePostRequest(REGISTER_URL, registerData, result -> {
-            if (result.getCode() == 200) {
-                showAlert("注册成功", "账号创建成功，请登录", Alert.AlertType.INFORMATION);
-            } else {
-                showAlert("注册失败", result.getMsg(), Alert.AlertType.ERROR);
+        new Thread(() -> {
+            try {
+                String jsonBody = gson.toJson(registerData);
+                RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json; charset=utf-8"));
+                Request request = new Request.Builder().url(REGISTER_URL).post(body).build();
+                try (Response response = httpClient.newCall(request).execute()) {
+                    String respBody = response.body() != null ? response.body().string() : "";
+                    System.out.println("[DEBUG] 注册响应: code=" + response.code() + " body=" + respBody);
+                    if (response.isSuccessful()) {
+                        // 解析 Result 格式 {"code":200, "msg":"...", "data":...}
+                        try {
+                            com.google.gson.JsonObject json = gson.fromJson(respBody, com.google.gson.JsonObject.class);
+                            int code = json.has("code") ? json.get("code").getAsInt() : 0;
+                            String msg = json.has("msg") ? json.get("msg").getAsString() : "";
+                            if (code == 200) {
+                                javafx.application.Platform.runLater(() ->
+                                        showAlert("注册成功", "账号创建成功，请登录", Alert.AlertType.INFORMATION));
+                            } else {
+                                javafx.application.Platform.runLater(() ->
+                                        showAlert("注册失败", msg, Alert.AlertType.ERROR));
+                            }
+                        } catch (Exception e) {
+                            javafx.application.Platform.runLater(() ->
+                                    showAlert("注册成功", "账号创建成功，请登录", Alert.AlertType.INFORMATION));
+                        }
+                    } else {
+                        javafx.application.Platform.runLater(() ->
+                                showAlert("注册失败", "服务器返回错误 (HTTP " + response.code() + ")", Alert.AlertType.ERROR));
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                javafx.application.Platform.runLater(() ->
+                        showAlert("网络错误", "无法连接到服务器", Alert.AlertType.ERROR));
             }
-        });
+        }).start();
     }
 
     // ==================== 网络请求封装 ====================
@@ -207,11 +236,17 @@ public class LoginController {
     private void navigateTo(String fxmlPath, String title, boolean maximize) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
-            Scene scene = new Scene(loader.load());
+            Scene scene = new Scene(loader.load(), 1200, 800);
             Stage stage = (Stage) usernameField.getScene().getWindow();
+            stage.setResizable(true);
             stage.setScene(scene);
             stage.setTitle(title);
-            stage.setMaximized(maximize);
+            if (maximize) {
+                stage.setMaximized(true);
+            } else {
+                stage.setMaximized(false);
+                stage.centerOnScreen();
+            }
         } catch (IOException e) {
             e.printStackTrace();
             showAlert("错误", "页面加载失败: " + fxmlPath, Alert.AlertType.ERROR);

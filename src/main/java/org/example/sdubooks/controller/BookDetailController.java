@@ -38,6 +38,13 @@ public class BookDetailController extends BaseController {
     private Long bookId;
     private Book currentBook;
 
+    // 静态 bookId，供其他控制器在加载页面前设置
+    private static Long pendingBookId;
+
+    public static void setSelectedBookId(Long id) {
+        pendingBookId = id;
+    }
+
     private static final String ADMIN_BASE_URL = "http://localhost:8081/api/admin";
     private static final String BOOK_DETAIL_URL = ADMIN_BASE_URL + "/books";
     private static final String REVIEW_BASE_URL = BASE_URL+"/review";
@@ -46,6 +53,12 @@ public class BookDetailController extends BaseController {
     @FXML
     public void initialize() {
         btnBack.setVisible(false);
+        // 如果有通过静态方法设置的 bookId，自动加载
+        if (pendingBookId != null) {
+            this.bookId = pendingBookId;
+            pendingBookId = null;
+            loadBookDetail();
+        }
     }
 
     public void setBookId(Long bookId) {
@@ -67,41 +80,54 @@ public class BookDetailController extends BaseController {
 
         new Thread(() -> {
             try (Response response = httpClient.newCall(request).execute()) {
-                if (response.isSuccessful() && response.body() != null) {
-                    currentBook = gson.fromJson(response.body().string(), Book.class);
-                    Platform.runLater(() -> {
-                        displayBookDetail(currentBook);
-                        loadReviews();
-                        btnBack.setVisible(true);
-                    });
+                String respBody = response.body() != null ? response.body().string() : "";
+                System.out.println("[DEBUG] 图书详情响应: code=" + response.code() + " body=" + respBody);
+                if (response.isSuccessful()) {
+                    // 提取 data 字段
+                    String dataStr = respBody;
+                    try {
+                        JsonObject json = gson.fromJson(respBody, JsonObject.class);
+                        if (json.has("data") && !json.get("data").isJsonNull()) {
+                            dataStr = json.get("data").toString();
+                        }
+                    } catch (Exception ignored) {}
+                    currentBook = gson.fromJson(dataStr, Book.class);
+                    if (currentBook != null) {
+                        Platform.runLater(() -> {
+                            displayBookDetail(currentBook);
+                            loadReviews();
+                            btnBack.setVisible(true);
+                        });
+                    }
                 } else {
                     Platform.runLater(() ->
-                            showAlert("错误", "加载图书详情失败", Alert.AlertType.ERROR)
+                            showAlert("错误", "加载图书详情失败 (HTTP " + response.code() + ")", Alert.AlertType.ERROR)
                     );
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() ->
-                        showAlert("错误", "网络请求失败", Alert.AlertType.ERROR)
+                        showAlert("错误", "网络请求失败: " + e.getMessage(), Alert.AlertType.ERROR)
                 );
             }
         }).start();
     }
 
     private void displayBookDetail(Book book) {
-        categoryLabel.setText(book.getCategory());
-        titleLabel.setText(book.getTitle());
-        authorLabel.setText(book.getAuthor());
-        ratingLabel.setText(String.valueOf(book.getRating()));
-        borrowCountLabel.setText("借阅 " + book.getBorrowCount() + " 次");
-        availableLabel.setText("可借 " + book.getAvailable() + "/" + book.getTotal());
-        isbnLabel.setText(book.getIsbn());
-        publisherLabel.setText(book.getPublisher());
-        publishDateLabel.setText(book.getPublishDate());
-        totalLabel.setText(book.getTotal() + " 册（可借 " + book.getAvailable() + " 册）");
-        descriptionLabel.setText(book.getDescription());
+        categoryLabel.setText(book.getCategory() != null ? book.getCategory() : "");
+        titleLabel.setText(book.getTitle() != null ? book.getTitle() : "");
+        authorLabel.setText(book.getAuthor() != null ? book.getAuthor() : "");
+        ratingLabel.setText(book.getRating() != null ? String.valueOf(book.getRating()) : "0");
+        borrowCountLabel.setText("借阅 " + (book.getBorrowCount() != null ? book.getBorrowCount() : 0) + " 次");
+        availableLabel.setText("可借 " + (book.getAvailable() != null ? book.getAvailable() : 0) + "/" + (book.getTotal() != null ? book.getTotal() : 0));
+        isbnLabel.setText(book.getIsbn() != null ? book.getIsbn() : "");
+        publisherLabel.setText(book.getPublisher() != null ? book.getPublisher() : "");
+        publishDateLabel.setText(book.getPublishDate() != null ? book.getPublishDate() : "");
+        totalLabel.setText((book.getTotal() != null ? book.getTotal() : 0) + " 册（可借 " + (book.getAvailable() != null ? book.getAvailable() : 0) + " 册）");
+        descriptionLabel.setText(book.getDescription() != null ? book.getDescription() : "暂无简介");
 
-        if (book.getAvailable() <= 0) {
+        int available = book.getAvailable() != null ? book.getAvailable() : 0;
+        if (available <= 0) {
             btnBorrow.setDisable(true);
             btnBorrow.setText("暂无库存");
             btnBorrow.setStyle("-fx-background-color: #cbd5e1; -fx-background-radius: 15; -fx-padding: 15 40; -fx-font-size: 16px; -fx-text-fill: #64748b;");
@@ -117,17 +143,25 @@ public class BookDetailController extends BaseController {
 
         new Thread(() -> {
             try (Response response = httpClient.newCall(request).execute()) {
-                if (response.isSuccessful() && response.body() != null) {
-                    List<BookReview> reviews = gson.fromJson(
-                            response.body().string(),
-                            new TypeToken<List<BookReview>>(){}.getType()
-                    );
+                String respBody = response.body() != null ? response.body().string() : "";
+                if (response.isSuccessful()) {
+                    String dataStr = respBody;
+                    try {
+                        JsonObject json = gson.fromJson(respBody, JsonObject.class);
+                        if (json.has("data") && !json.get("data").isJsonNull()) {
+                            dataStr = json.get("data").toString();
+                        }
+                    } catch (Exception ignored) {}
+                    List<BookReview> reviews = gson.fromJson(dataStr,
+                            new TypeToken<List<BookReview>>(){}.getType());
+                    if (reviews == null) reviews = new java.util.ArrayList<>();
+                    final List<BookReview> finalReviews = reviews;
                     Platform.runLater(() -> {
-                        reviewCountLabel.setText("读者书评 (" + reviews.size() + ")");
-                        displayReviews(reviews);
+                        reviewCountLabel.setText("读者书评 (" + finalReviews.size() + ")");
+                        displayReviews(finalReviews);
                     });
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }).start();
@@ -170,14 +204,14 @@ public class BookDetailController extends BaseController {
             ratingDateBox.getChildren().add(star);
         }
 
-        Label dateLabel = new Label(review.getReviewDate() != null ? review.getReviewDate().toString() : "");
+        Label dateLabel = new Label(review.getCreateTime() != null ? review.getCreateTime().toLocalDate().toString() : "");
         dateLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #64748b;");
         ratingDateBox.getChildren().add(dateLabel);
 
         nameBox.getChildren().addAll(usernameLabel, ratingDateBox);
         userInfo.getChildren().addAll(avatarBox, nameBox);
 
-        Label contentLabel = new Label(review.getContent());
+        Label contentLabel = new Label(review.getContent() != null ? review.getContent() : "");
         contentLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #334155; -fx-line-spacing: 5;");
         contentLabel.setWrapText(true);
 
@@ -188,19 +222,7 @@ public class BookDetailController extends BaseController {
 
     @FXML
     private void handleBack() {
-        try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
-                    getClass().getResource("/org/example/sdubooks/homepage-view.fxml"));
-            javafx.scene.Scene scene = new javafx.scene.Scene(loader.load());
-            Stage stage = getCurrentStage();
-            if (stage != null) {
-                stage.setScene(scene);
-                stage.setTitle("首页");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            showAlert("错误", "无法返回上一页", Alert.AlertType.ERROR);
-        }
+        loadPageInShell("/org/example/sdubooks/homepage-view.fxml");
     }
 
     @FXML
@@ -216,12 +238,42 @@ public class BookDetailController extends BaseController {
             return;
         }
 
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("确认借阅");
-        confirm.setHeaderText(null);
-        confirm.setContentText("确定要借阅《" + currentBook.getTitle() + "》吗？");
+        // 自定义借阅须知弹窗
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("借阅须知");
+        dialog.setHeaderText(null);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.getDialogPane().setPrefWidth(450);
 
-        confirm.showAndWait().ifPresent(response -> {
+        VBox content = new VBox(15);
+        content.setPadding(new javafx.geometry.Insets(20));
+
+        Label titleLabel = new Label("📖 借阅须知 — 《" + currentBook.getTitle() + "》");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
+
+        String termsText = "1. 借阅期限为 30 天，从借阅之日起计算。\n\n" +
+                "2. 逾期未还者，按每天 0.1 元计收逾期费用。\n\n" +
+                "3. 请爱护图书，如有损坏或遗失需照价赔偿。\n\n" +
+                "4. 每人每书同一时间只能借阅一本。\n\n" +
+                "5. 归还图书后方可再次借阅同一本书。";
+
+        Label termsLabel = new Label(termsText);
+        termsLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #475569; -fx-line-spacing: 4;");
+        termsLabel.setWrapText(true);
+
+        javafx.scene.control.CheckBox confirmCheck = new javafx.scene.control.CheckBox("我已阅读并同意以上借阅须知");
+        confirmCheck.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+
+        // 初始时确定按钮不可用
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setDisable(true);
+        okButton.setText("确定借阅");
+        confirmCheck.selectedProperty().addListener((obs, oldVal, newVal) -> okButton.setDisable(!newVal));
+
+        content.getChildren().addAll(titleLabel, termsLabel, confirmCheck);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 performBorrow();
             }
@@ -383,34 +435,44 @@ public class BookDetailController extends BaseController {
 
     private void submitReview(int rating, String content) {
         String token = getToken();
-        
+        Long userId = getCurrentUserId();
+
         JsonObject reviewData = new JsonObject();
         reviewData.addProperty("bookId", bookId);
         reviewData.addProperty("rating", (double) rating);
         reviewData.addProperty("content", content);
+        if (userId != null) {
+            reviewData.addProperty("userId", userId.intValue());
+        }
+
+        String json = reviewData.toString();
+        System.out.println("[DEBUG] 发表书评请求: " + json);
 
         Request request = new Request.Builder()
                 .url(REVIEW_BASE_URL)
                 .header("Authorization", "Bearer " + token)
-                .post(RequestBody.create(gson.toJson(reviewData), MediaType.get("application/json")))
+                .post(RequestBody.create(json, MediaType.get("application/json")))
                 .build();
 
         new Thread(() -> {
             try (Response response = httpClient.newCall(request).execute()) {
+                String respBody = response.body() != null ? response.body().string() : "";
+                System.out.println("[DEBUG] 发表书评响应: code=" + response.code() + " body=" + respBody);
                 if (response.isSuccessful()) {
                     Platform.runLater(() -> {
                         showAlert("成功", "书评发表成功！", Alert.AlertType.INFORMATION);
                         loadReviews();
+                        loadBookDetail(); // 刷新评分
                     });
                 } else {
                     Platform.runLater(() ->
-                            showAlert("错误", "发表书评失败，请稍后重试", Alert.AlertType.ERROR)
+                            showAlert("错误", "发表书评失败 (HTTP " + response.code() + "): " + respBody, Alert.AlertType.ERROR)
                     );
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() ->
-                        showAlert("错误", "网络请求失败", Alert.AlertType.ERROR)
+                        showAlert("错误", "网络请求失败: " + e.getMessage(), Alert.AlertType.ERROR)
                 );
             }
         }).start();

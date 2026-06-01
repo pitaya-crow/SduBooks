@@ -12,7 +12,6 @@ import org.example.sdubooks.model.*;
 import okhttp3.*;
 
 import java.io.IOException;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class BorrowStatisticsController extends BaseController {
@@ -26,10 +25,10 @@ public class BorrowStatisticsController extends BaseController {
     @FXML private VBox borrowRankBox;
 
     private static final String BASE_URL = "http://localhost:8081/api/admin";
-    private static final String STATS_URL = BASE_URL + "/borrow/stats";
+    private static final String STATS_URL = BASE_URL + "/borrows/stats";
     private static final String TREND_URL = BASE_URL + "/borrow/trend";
     private static final String CATEGORY_URL = BASE_URL + "/borrow/category";
-    private static final String RANK_URL = BASE_URL + "/borrow/rank";
+    private static final String RANK_URL = BASE_URL + "/dashboard/hot-books"; // 借阅排行复用热门书籍接口
 
     @FXML
     public void initialize() {
@@ -77,23 +76,19 @@ public class BorrowStatisticsController extends BaseController {
         try (Response response = httpClient.newCall(request).execute()) {
             if (response.isSuccessful()) {
                 String respBody = response.body().string();
+                System.out.println("[DEBUG] 借阅统计响应: " + respBody);
                 BorrowStats stats = gson.fromJson(extractData(respBody), BorrowStats.class);
-                Platform.runLater(() -> {
-                    totalBorrowLabel.setText(String.valueOf(stats.getTotalBorrowCount()));
-                    totalReturnLabel.setText(String.valueOf(stats.getTotalReturnCount()));
-
-                    Double rate = stats.getMonthlyGrowthRate();
-                    growthRateLabel.setText(String.format("%.1f%%", rate));
-
-                    if (rate >= 0) {
-                        growthRateLabel.setStyle("-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #4CAF50;");
-                    } else {
-                        growthRateLabel.setStyle("-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #F44336;");
-                    }
-                });
+                if (stats != null) {
+                    Platform.runLater(() -> {
+                        totalBorrowLabel.setText(String.valueOf(stats.getTotalBorrows()));
+                        totalReturnLabel.setText(String.valueOf(stats.getReturnedBooks()));
+                        growthRateLabel.setText(String.valueOf(stats.getThisMonthBooks()));
+                        growthRateLabel.setStyle("-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #3b82f6;");
+                    });
+                }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("[DEBUG] loadStats异常: " + e.getMessage());
         }
     }
 
@@ -122,6 +117,10 @@ public class BorrowStatisticsController extends BaseController {
 
     private void renderTrendChart(List<BorrowTrend> trends) {
         trendChartBox.getChildren().clear();
+        if (trends == null || trends.isEmpty()) {
+            trendChartBox.getChildren().add(new Label("暂无数据"));
+            return;
+        }
 
         LineChart<String, Number> chart = new LineChart<>(
                 new CategoryAxis(),
@@ -143,17 +142,27 @@ public class BorrowStatisticsController extends BaseController {
         XYChart.Series<String, Number> returnSeries = new XYChart.Series<>();
         returnSeries.setName("归还次数");
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("M月");
         for (BorrowTrend trend : trends) {
-            String month = trend.getDate().format(formatter);
-            borrowSeries.getData().add(new XYChart.Data<>(month, trend.getBorrowCount()));
-            returnSeries.getData().add(new XYChart.Data<>(month, trend.getReturnCount()));
+            String month = trend.getDate() != null ? trend.getDate() : "";
+            Integer borrowCount = trend.getBorrowCount() != null ? trend.getBorrowCount() : 0;
+            Integer returnCount = trend.getReturnCount() != null ? trend.getReturnCount() : 0;
+            borrowSeries.getData().add(new XYChart.Data<>(month, borrowCount));
+            returnSeries.getData().add(new XYChart.Data<>(month, returnCount));
         }
 
         chart.getData().addAll(borrowSeries, returnSeries);
 
-        borrowSeries.getNode().lookup(".chart-series-line").setStyle("-fx-stroke: #5B8FF9; -fx-stroke-width: 3px;");
-        returnSeries.getNode().lookup(".chart-series-line").setStyle("-fx-stroke: #5AD8A6; -fx-stroke-width: 3px;");
+        // 设置线条样式（需要延迟执行，否则节点可能为 null）
+        Platform.runLater(() -> {
+            try {
+                if (borrowSeries.getNode() != null) {
+                    borrowSeries.getNode().lookup(".chart-series-line").setStyle("-fx-stroke: #5B8FF9; -fx-stroke-width: 3px;");
+                }
+                if (returnSeries.getNode() != null) {
+                    returnSeries.getNode().lookup(".chart-series-line").setStyle("-fx-stroke: #5AD8A6; -fx-stroke-width: 3px;");
+                }
+            } catch (Exception ignored) {}
+        });
 
         trendChartBox.getChildren().add(chart);
     }
@@ -183,6 +192,10 @@ public class BorrowStatisticsController extends BaseController {
 
     private void renderCategoryChart(List<CategoryStats> categories) {
         categoryChartBox.getChildren().clear();
+        if (categories == null || categories.isEmpty()) {
+            categoryChartBox.getChildren().add(new Label("暂无数据"));
+            return;
+        }
 
         BarChart<String, Number> chart = new BarChart<>(
                 new CategoryAxis(),
@@ -191,29 +204,33 @@ public class BorrowStatisticsController extends BaseController {
 
         chart.setTitle("分类统计");
         chart.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-        chart.setLegendVisible(true);
+        chart.setLegendVisible(false);
 
         CategoryAxis xAxis = (CategoryAxis) chart.getXAxis();
         xAxis.setLabel("分类");
 
         NumberAxis yAxis = (NumberAxis) chart.getYAxis();
-        yAxis.setLabel("数量");
+        yAxis.setLabel("图书数量");
 
         XYChart.Series<String, Number> bookSeries = new XYChart.Series<>();
         bookSeries.setName("图书数量");
 
-        XYChart.Series<String, Number> borrowSeries = new XYChart.Series<>();
-        borrowSeries.setName("借阅次数");
-
         for (CategoryStats category : categories) {
-            bookSeries.getData().add(new XYChart.Data<>(category.getCategoryName(), category.getBookCount()));
-            borrowSeries.getData().add(new XYChart.Data<>(category.getCategoryName(), category.getBorrowCount()));
+            String name = category.getCategoryName();
+            int count = category.getBookCount();
+            if (name != null && count > 0) {
+                bookSeries.getData().add(new XYChart.Data<>(name, count));
+            }
         }
 
-        chart.getData().addAll(bookSeries, borrowSeries);
+        if (bookSeries.getData().isEmpty()) {
+            categoryChartBox.getChildren().add(new Label("暂无数据"));
+            return;
+        }
+
+        chart.getData().add(bookSeries);
 
         bookSeries.getNode().setStyle("-fx-bar-fill: #722ED1;");
-        borrowSeries.getNode().setStyle("-fx-bar-fill: #FAAD14;");
 
         categoryChartBox.getChildren().add(chart);
     }
@@ -243,6 +260,10 @@ public class BorrowStatisticsController extends BaseController {
 
     private void renderBorrowRank(List<HotBook> books) {
         borrowRankBox.getChildren().clear();
+        if (books == null || books.isEmpty()) {
+            borrowRankBox.getChildren().add(new Label("暂无数据"));
+            return;
+        }
 
         Label title = new Label("借阅排行");
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 0 0 16 0;");

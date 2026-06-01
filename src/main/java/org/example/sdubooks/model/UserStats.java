@@ -1,20 +1,17 @@
 package org.example.sdubooks.model;
 
 public class UserStats {
-    private String username;
-    private String email;
-    private String joinDate;
+    // 与后端 User 实体字段名一致
+    private String userName;
+    private String createTime;
     private Integer totalBorrows;
     private Integer currentBorrows;
 
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
+    public String getUserName() { return userName; }
+    public void setUserName(String userName) { this.userName = userName; }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public String getJoinDate() { return joinDate; }
-    public void setJoinDate(String joinDate) { this.joinDate = joinDate; }
+    public String getCreateTime() { return createTime; }
+    public void setCreateTime(String createTime) { this.createTime = createTime; }
 
     public Integer getTotalBorrows() { return totalBorrows; }
     public void setTotalBorrows(Integer totalBorrows) { this.totalBorrows = totalBorrows; }

@@ -26,6 +26,12 @@ public class AdminController extends BaseController {
         return (Stage) contentPane.getScene().getWindow();
     }
 
+    @FXML
+    public void initialize() {
+        // 进入管理后台时自动加载仪表板
+        switchToDashboard();
+    }
+
     // ==================== 导航切换方法 ====================
     @FXML
     private void switchToDashboard() {

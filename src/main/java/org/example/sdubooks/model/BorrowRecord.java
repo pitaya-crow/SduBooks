@@ -1,38 +1,48 @@
 package org.example.sdubooks.model;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class BorrowRecord {
-    private Long id;
-    private Long bookId;
+    // 与后端 BorrowRecord 实体字段名一致
+    private Integer id;
+    private Integer bookId;
+    private Integer userId;
+    private LocalDateTime borrowedAt;
+    private LocalDateTime dueAt;
+    private LocalDateTime returnedAt;
+    private Integer status;
+    private Integer renewCount;
+
+    // 后端 listByUserId 返回的附加字段
     private String bookTitle;
-    private String bookCover;
-    private LocalDate borrowDate;
-    private LocalDate dueDate;
-    private LocalDate returnDate;
-    private String status;
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
 
-    public Long getBookId() { return bookId; }
-    public void setBookId(Long bookId) { this.bookId = bookId; }
+    public Integer getBookId() { return bookId; }
+    public void setBookId(Integer bookId) { this.bookId = bookId; }
+
+    public Integer getUserId() { return userId; }
+    public void setUserId(Integer userId) { this.userId = userId; }
+
+    public LocalDateTime getBorrowedAt() { return borrowedAt; }
+    public void setBorrowedAt(LocalDateTime borrowedAt) { this.borrowedAt = borrowedAt; }
+
+    public LocalDateTime getDueAt() { return dueAt; }
+    public void setDueAt(LocalDateTime dueAt) { this.dueAt = dueAt; }
+
+    public LocalDateTime getReturnedAt() { return returnedAt; }
+    public void setReturnedAt(LocalDateTime returnedAt) { this.returnedAt = returnedAt; }
+
+    public Integer getStatus() { return status; }
+    public void setStatus(Integer status) { this.status = status; }
+
+    public Integer getRenewCount() { return renewCount; }
+    public void setRenewCount(Integer renewCount) { this.renewCount = renewCount; }
 
     public String getBookTitle() { return bookTitle; }
     public void setBookTitle(String bookTitle) { this.bookTitle = bookTitle; }
 
-    public String getBookCover() { return bookCover; }
-    public void setBookCover(String bookCover) { this.bookCover = bookCover; }
-
-    public LocalDate getBorrowDate() { return borrowDate; }
-    public void setBorrowDate(LocalDate borrowDate) { this.borrowDate = borrowDate; }
-
-    public LocalDate getDueDate() { return dueDate; }
-    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
-
-    public LocalDate getReturnDate() { return returnDate; }
-    public void setReturnDate(LocalDate returnDate) { this.returnDate = returnDate; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    // 兼容方法
+    public boolean isReturned() { return status != null && status == 0; }
 }

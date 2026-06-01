@@ -3,7 +3,6 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.text.*?>
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.cell.PropertyValueFactory?>
 
 <ScrollPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
@@ -32,31 +31,15 @@
             <Label text=" 个用户" style="-fx-text-fill: #64748b;"/>
         </HBox>
 
-        <!-- 用户表格 -->
+        <!-- 用户表格（列由控制器动态配置） -->
         <TableView fx:id="usersTable" prefHeight="450"
-                   style="-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 6, 0, 1, 0);">
-            <columns>
-                <TableColumn text="用户名" prefWidth="150">
-                    <cellValueFactory><PropertyValueFactory property="username"/></cellValueFactory>
-                </TableColumn>
-                <TableColumn text="邮箱" prefWidth="200">
-                    <cellValueFactory><PropertyValueFactory property="email"/></cellValueFactory>
-                </TableColumn>
-                <TableColumn text="角色" prefWidth="100">
-                    <cellValueFactory><PropertyValueFactory property="role"/></cellValueFactory>
-                </TableColumn>
-                <TableColumn text="状态" prefWidth="120">
-                    <cellValueFactory><PropertyValueFactory property="enabled"/></cellValueFactory>
-                </TableColumn>
-                <TableColumn text="操作" prefWidth="100"/>
-            </columns>
-        </TableView>
+                   style="-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 6, 0, 1, 0);"/>
 
         <!-- 底部工具栏 -->
         <HBox spacing="12" alignment="CENTER_LEFT"
               style="-fx-padding: 12 16; -fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 6, 0, 1, 0);">
             <CheckBox fx:id="selectAllCheckbox" text="全选" onAction="#handleSelectAll"/>
-            <Button text="批量删除" onAction="#handleBatchDelete"
+            <Button fx:id="batchDeleteBtn" text="批量删除" onAction="#handleBatchDelete"
                     style="-fx-background-color: #ef4444; -fx-text-fill: white; -fx-background-radius: 8; -fx-cursor: hand;"/>
             <Pane HBox.hgrow="ALWAYS"/>
             <HBox spacing="8" alignment="CENTER_RIGHT">

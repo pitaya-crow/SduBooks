@@ -1,8 +1,11 @@
 package org.example.sdubooks.controller;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializer;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -10,6 +13,9 @@ import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import okhttp3.*;
 import org.example.sdubooks.model.LoginResponse;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import java.io.IOException;
 import java.util.prefs.Preferences;
@@ -26,7 +32,24 @@ public class BaseController {
     protected static final String TOKEN_KEY = "auth_token";
 
     protected final OkHttpClient httpClient = new OkHttpClient();
-    protected final Gson gson = new Gson();
+    protected final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(LocalDateTime.class,
+                    (JsonDeserializer<LocalDateTime>)(json, type, ctx) -> {
+                        String str = json.getAsString();
+                        if (str == null || str.isEmpty() || str.equals("null")) return null;
+                        try {
+                            return LocalDateTime.parse(str, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                        } catch (Exception e) {
+                            return LocalDateTime.parse(str.replace(" ", "T"), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                        }
+                    })
+            .registerTypeAdapter(java.time.LocalDate.class,
+                    (JsonDeserializer<java.time.LocalDate>)(json, type, ctx) -> {
+                        String str = json.getAsString();
+                        if (str == null || str.isEmpty() || str.equals("null")) return null;
+                        return java.time.LocalDate.parse(str);
+                    })
+            .create();
 
     // ==================== 退出登录逻辑 ====================
 
@@ -84,6 +107,33 @@ public class BaseController {
     }
 
     /**
+     * 通过 Shell 加载子页面（不切换 Scene，只更新内容区）
+     * 如果当前不在 Shell 中，则回退到全页面切换
+     */
+    protected void loadPageInShell(String fxmlPath) {
+        Stage stage = getCurrentStage();
+        if (stage != null && stage.getScene() != null) {
+            // 查找场景中的 MainShellController 的 contentPane
+            javafx.scene.Node root = stage.getScene().getRoot();
+            if (root instanceof javafx.scene.layout.BorderPane) {
+                javafx.scene.Node center = ((javafx.scene.layout.BorderPane) root).getCenter();
+                if (center instanceof javafx.scene.layout.StackPane) {
+                    try {
+                        FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+                        Node page = loader.load();
+                        ((javafx.scene.layout.StackPane) center).getChildren().setAll(page);
+                        return;
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        // 回退：全页面切换
+        navigateTo(fxmlPath, "", 800, 600);
+    }
+
+    /**
      * 通用页面跳转方法，彻底替代原先通过 namespace 获取 Stage 的危险写法
      */
     protected void navigateTo(String fxmlPath, String title, double width, double height) {
@@ -106,13 +156,16 @@ public class BaseController {
     private void navigateToLogin(String warningMsg) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/example/sdubooks/login-view.fxml"));
-            Scene scene = new Scene(loader.load());
-            Stage stage = getCurrentStage();
-            if (stage != null) {
-                stage.setScene(scene);
-                stage.setTitle("用户登录");
-                stage.setMaximized(false);
-                stage.sizeToScene();
+            // 与初始登录保持一致的尺寸
+            Scene scene = new Scene(loader.load(), 450, 650);
+            Stage oldStage = getCurrentStage();
+            if (oldStage != null) {
+                oldStage.close();
+                Stage newStage = new Stage();
+                newStage.setScene(scene);
+                newStage.setTitle("登录");
+                newStage.centerOnScreen();
+                newStage.show();
                 if (warningMsg != null) {
                     showAlert("提示", warningMsg, Alert.AlertType.WARNING);
                 }

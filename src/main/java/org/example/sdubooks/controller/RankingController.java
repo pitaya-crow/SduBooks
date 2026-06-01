@@ -1,5 +1,6 @@
 package org.example.sdubooks.controller;
 
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -22,14 +23,13 @@ public class RankingController extends BaseController {
 
     @FXML private Button btnAll;
     @FXML private Button btnMonth;
-    @FXML private Button btnWeek;
     @FXML private VBox rankingList;
 
     private String currentTab = "borrow";
 
     private static final String RANKING_BASE_URL = "http://localhost:8081/api/ranking";
-    private static final String BORROW_TOP_URL = RANKING_BASE_URL + "/borrow/top10";
-    private static final String RATING_TOP_URL = RANKING_BASE_URL + "/rating/top10";
+    private static final String BORROW_TOP_URL = RANKING_BASE_URL + "/borrow";
+    private static final String RATING_TOP_URL = RANKING_BASE_URL + "/score";
 
     @FXML
     public void initialize() {
@@ -60,7 +60,6 @@ public class RankingController extends BaseController {
 
         btnAll.setStyle(inactiveStyle);
         btnMonth.setStyle(inactiveStyle);
-        btnWeek.setStyle(inactiveStyle);
 
         activeBtn.setStyle(activeStyle);
     }
@@ -68,11 +67,8 @@ public class RankingController extends BaseController {
     private void loadRankingData() {
         String url;
         switch (currentTab) {
-            case "month":
-                url = BORROW_TOP_URL;
-                break;
-            case "week":
-                url = BORROW_TOP_URL;
+            case "rating":
+                url = RATING_TOP_URL;
                 break;
             case "borrow":
             default:
@@ -81,25 +77,38 @@ public class RankingController extends BaseController {
         }
 
         String token = getToken();
-        Request request = new Request.Builder()
-                .url(url)
-                .header("Authorization", "Bearer " + token)
-                .build();
+        System.out.println("[DEBUG] 排行榜请求URL: " + url);
 
         new Thread(() -> {
-            try (Response response = httpClient.newCall(request).execute()) {
-                if (response.isSuccessful() && response.body() != null) {
-                    List<RankingBook> books = gson.fromJson(
-                            response.body().string(),
-                            new TypeToken<List<RankingBook>>(){}.getType()
-                    );
-                    Platform.runLater(() -> renderRankingList(books));
-                } else {
-                    Platform.runLater(() ->
-                            showAlert("错误", "获取排行榜数据失败", Alert.AlertType.ERROR)
-                    );
+            try {
+                Request request = new Request.Builder()
+                        .url(url)
+                        .header("Authorization", "Bearer " + token)
+                        .build();
+
+                try (Response response = httpClient.newCall(request).execute()) {
+                    String respBody = response.body() != null ? response.body().string() : "";
+                    System.out.println("[DEBUG] 排行榜响应: code=" + response.code() + " body=" + respBody);
+                    if (response.isSuccessful()) {
+                        // 后端返回 {"code":200, "data":[...]}
+                        String dataStr = respBody;
+                        try {
+                            JsonObject json = gson.fromJson(respBody, JsonObject.class);
+                            if (json.has("data") && !json.get("data").isJsonNull()) {
+                                dataStr = json.get("data").toString();
+                            }
+                        } catch (Exception ignored) {}
+
+                        List<RankingBook> books = gson.fromJson(dataStr,
+                                new TypeToken<List<RankingBook>>(){}.getType());
+                        Platform.runLater(() -> renderRankingList(books != null ? books : new java.util.ArrayList<>()));
+                    } else {
+                        Platform.runLater(() ->
+                                showAlert("错误", "获取排行榜数据失败 (HTTP " + response.code() + ")", Alert.AlertType.ERROR)
+                        );
+                    }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() ->
                         showAlert("错误", "网络请求失败: " + e.getMessage(), Alert.AlertType.ERROR)
@@ -120,7 +129,7 @@ public class RankingController extends BaseController {
     private VBox createRankingItem(RankingBook book, int rank) {
         VBox item = new VBox(10);
         item.setStyle("-fx-background-color: white; -fx-background-radius: 20; -fx-padding: 20; " +
-                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);");
+                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 10, 0, 0, 2);");
 
         HBox content = new HBox(20);
         content.setStyle("-fx-alignment: CENTER_LEFT;");

@@ -1,42 +1,39 @@
 package org.example.sdubooks.model;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public class BookReview {
-    private Long id;
-    private Long bookId;
-    private String bookTitle;
-    private Double rating;
+    private Integer reviewId;
+    private Integer bookId;
+    private Integer userId;
     private String content;
-    private LocalDate reviewDate;
-    private Long userId;
+    private BigDecimal rating;
+    private LocalDateTime createTime;
+    private Integer likeCount;
     private String username;
-    private String userAvatar;
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Integer getReviewId() { return reviewId; }
+    public void setReviewId(Integer reviewId) { this.reviewId = reviewId; }
 
-    public Long getBookId() { return bookId; }
-    public void setBookId(Long bookId) { this.bookId = bookId; }
+    public Integer getBookId() { return bookId; }
+    public void setBookId(Integer bookId) { this.bookId = bookId; }
 
-    public String getBookTitle() { return bookTitle; }
-    public void setBookTitle(String bookTitle) { this.bookTitle = bookTitle; }
-
-    public Double getRating() { return rating; }
-    public void setRating(Double rating) { this.rating = rating; }
+    public Integer getUserId() { return userId; }
+    public void setUserId(Integer userId) { this.userId = userId; }
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
 
-    public LocalDate getReviewDate() { return reviewDate; }
-    public void setReviewDate(LocalDate reviewDate) { this.reviewDate = reviewDate; }
+    public BigDecimal getRating() { return rating; }
+    public void setRating(BigDecimal rating) { this.rating = rating; }
 
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public LocalDateTime getCreateTime() { return createTime; }
+    public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
 
-    public String getUsername() { return username; }
+    public Integer getLikeCount() { return likeCount; }
+    public void setLikeCount(Integer likeCount) { this.likeCount = likeCount; }
+
+    public String getUsername() { return username != null ? username : "匿名用户"; }
     public void setUsername(String username) { this.username = username; }
-
-    public String getUserAvatar() { return userAvatar; }
-    public void setUserAvatar(String userAvatar) { this.userAvatar = userAvatar; }
 }

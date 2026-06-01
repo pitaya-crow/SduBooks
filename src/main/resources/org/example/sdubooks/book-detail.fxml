@@ -8,18 +8,11 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.image.ImageView?>
 
-<BorderPane xmlns:fx="http://javafx.com/fxml"
+<!-- 图书详情内容（由 MainShell 加载，不含导航栏） -->
+<ScrollPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="org.example.sdubooks.controller.BookDetailController"
-            style="-fx-background-color: #f8fafc;">
-
-    <!-- 顶部导航栏 -->
-    <top>
-        <fx:include source="base.fxml"/>
-    </top>
-
-    <!-- 主内容区域 -->
-    <center>
-        <ScrollPane fitToWidth="true" style="-fx-background-color: #f8fafc;">
+            fitToWidth="true"
+            style="-fx-background-color: #f0f2f5;">
             <content>
                 <VBox spacing="20.0" style="-fx-padding: 30;">
                     <!-- 返回按钮 -->
@@ -110,6 +103,4 @@
                     </VBox>
                 </VBox>
             </content>
-        </ScrollPane>
-    </center>
-</BorderPane>
+</ScrollPane>

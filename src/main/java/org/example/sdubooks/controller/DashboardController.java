@@ -5,6 +5,7 @@ import com.google.gson.reflect.TypeToken;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -27,6 +28,9 @@ public class DashboardController extends BaseController {
 
     // ===== 最近活动 =====
     @FXML private VBox recentActivitiesBox;
+    private List<RecentBorrow> allRecentBorrows = new java.util.ArrayList<>();
+    private int recentPage = 0;
+    private static final int RECENT_PAGE_SIZE = 3;
 
     // ===== 热门图书 =====
     @FXML private VBox hotBooksBox;
@@ -39,7 +43,7 @@ public class DashboardController extends BaseController {
     private static final String STATS_URL = BASE_URL + "/dashboard/stats";
     private static final String RECENT_URL = BASE_URL + "/dashboard/recent";
     private static final String HOT_BOOKS_URL = BASE_URL + "/dashboard/hot-books";
-    private static final String ACTIVE_USERS_URL = BASE_URL + "/dashboard/active-users";
+    private static final String ACTIVE_USERS_URL = BASE_URL + "/dashboards/active-users";
 
     @FXML
     public void initialize() {
@@ -48,19 +52,12 @@ public class DashboardController extends BaseController {
     }
 
     private void loadDashboardData() {
-        // 同时发起4个请求（使用线程池优化）
+        // 每个请求独立 try-catch，一个失败不影响其他
         new Thread(() -> {
-            try {
-                loadStats();
-                loadRecentBorrows();
-                loadHotBooks();
-                loadActiveUsers();
-            } catch (Exception e) {
-                e.printStackTrace();
-                Platform.runLater(() ->
-                        showAlert("数据加载错误", "无法获取仪表板数据，请检查网络连接", Alert.AlertType.ERROR)
-                );
-            }
+            try { loadStats(); } catch (Exception e) { System.err.println("[DEBUG] loadStats失败: " + e.getMessage()); }
+            try { loadRecentBorrows(); } catch (Exception e) { System.err.println("[DEBUG] loadRecentBorrows失败: " + e.getMessage()); }
+            try { loadHotBooks(); } catch (Exception e) { System.err.println("[DEBUG] loadHotBooks失败: " + e.getMessage()); }
+            try { loadActiveUsers(); } catch (Exception e) { System.err.println("[DEBUG] loadActiveUsers失败: " + e.getMessage()); }
         }).start();
     }
 
@@ -69,13 +66,16 @@ public class DashboardController extends BaseController {
      * 后端返回 {"code":200, "data":{...}} 格式
      */
     private String extractData(String responseBody) {
+        if (responseBody == null || responseBody.isEmpty()) return "{}";
         try {
             JsonObject json = gson.fromJson(responseBody, JsonObject.class);
-            if (json.has("data")) {
+            if (json != null && json.has("data") && !json.get("data").isJsonNull()) {
                 return json.get("data").toString();
             }
-        } catch (Exception ignored) {}
-        return responseBody; // 如果不是包装格式，直接返回原内容
+        } catch (Exception e) {
+            System.err.println("[DEBUG] extractData解析失败: " + e.getMessage());
+        }
+        return responseBody;
     }
 
     // 加载统计卡片数据
@@ -89,17 +89,21 @@ public class DashboardController extends BaseController {
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
+            String respBody = response.body() != null ? response.body().string() : "";
+            System.out.println("[DEBUG] 仪表板stats响应: code=" + response.code() + " body=" + respBody);
             if (response.isSuccessful()) {
-                String respBody = response.body().string();
                 DashboardStats stats = gson.fromJson(extractData(respBody), DashboardStats.class);
-                Platform.runLater(() -> {
-                    totalBooksLabel.setText(String.valueOf(stats.getTotalBooks()));
-                    borrowedBooksLabel.setText(String.valueOf(stats.getBorrowedBooks()));
-                    registeredUsersLabel.setText(String.valueOf(stats.getRegisteredUsers()));
-                    overdueBooksLabel.setText(String.valueOf(stats.getOverdueBooks()));
-                });
+                if (stats != null) {
+                    Platform.runLater(() -> {
+                        totalBooksLabel.setText(String.valueOf(stats.getBookCount()));
+                        borrowedBooksLabel.setText(String.valueOf(stats.getBorrowRecordCount()));
+                        registeredUsersLabel.setText(String.valueOf(stats.getUserCount()));
+                        overdueBooksLabel.setText(String.valueOf(stats.getReviewCount()));
+                    });
+                }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
+            System.err.println("[DEBUG] loadStats异常: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -115,43 +119,83 @@ public class DashboardController extends BaseController {
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
+            String respBody = response.body() != null ? response.body().string() : "";
+            System.out.println("[DEBUG] 仪表板recent响应: code=" + response.code() + " body=" + respBody);
             if (response.isSuccessful()) {
-                String respBody = response.body().string();
                 List<RecentBorrow> borrows = gson.fromJson(
                         extractData(respBody),
                         new TypeToken<List<RecentBorrow>>(){}.getType()
                 );
-                Platform.runLater(() -> renderRecentActivities(borrows));
+                if (borrows == null) borrows = new java.util.ArrayList<>();
+                final List<RecentBorrow> finalBorrows = borrows;
+                Platform.runLater(() -> {
+                    allRecentBorrows = finalBorrows;
+                    recentPage = 0;
+                    renderRecentActivities();
+                });
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("[DEBUG] loadRecentBorrows异常: " + e.getMessage());
         }
     }
 
-    private void renderRecentActivities(List<RecentBorrow> borrows) {
+    private void renderRecentActivities() {
         recentActivitiesBox.getChildren().clear();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd HH:mm");
+        if (allRecentBorrows == null || allRecentBorrows.isEmpty()) {
+            recentActivitiesBox.getChildren().add(new Label("暂无活动记录"));
+            return;
+        }
 
-        for (RecentBorrow borrow : borrows) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd HH:mm");
+        int totalSize = allRecentBorrows.size();
+        int totalPages = Math.max((int) Math.ceil((double) totalSize / RECENT_PAGE_SIZE), 1);
+        if (recentPage >= totalPages) recentPage = totalPages - 1;
+        if (recentPage < 0) recentPage = 0;
+
+        int from = recentPage * RECENT_PAGE_SIZE;
+        int to = Math.min(from + RECENT_PAGE_SIZE, totalSize);
+        List<RecentBorrow> pageItems = allRecentBorrows.subList(from, to);
+
+        for (RecentBorrow borrow : pageItems) {
             HBox activityItem = new HBox(12);
             activityItem.setStyle("-fx-padding: 10 0; -fx-alignment: CENTER_LEFT; -fx-border-color: transparent transparent #f1f5f9 transparent; -fx-border-width: 0 0 1 0;");
 
             Circle statusDot = new Circle(5);
             statusDot.setFill(javafx.scene.paint.Color.web("#22c55e"));
 
-            Label activityText = new Label(
-                    borrow.getUserName() + " " +
-                            (borrow.getBookName().contains("借阅") ? "借阅了" : "归还了") + " " +
-                            borrow.getBookName()
-            );
+            String bookName = borrow.getBookName() != null ? borrow.getBookName() : "";
+            String userName = borrow.getUserName() != null ? borrow.getUserName() : "";
+            Label activityText = new Label(userName + " 借阅了 " + bookName);
             activityText.setStyle("-fx-font-size: 14px; -fx-text-fill: #334155;");
             HBox.setHgrow(activityText, Priority.ALWAYS);
 
-            Label timeText = new Label(borrow.getTimestamp().format(formatter));
+            Label timeText = new Label(borrow.getTimestamp() != null ? borrow.getTimestamp().format(formatter) : "");
             timeText.setStyle("-fx-font-size: 12px; -fx-text-fill: #94a3b8;");
 
             activityItem.getChildren().addAll(statusDot, activityText, timeText);
             recentActivitiesBox.getChildren().add(activityItem);
+        }
+
+        // 分页按钮
+        if (totalPages > 1) {
+            HBox pagingBox = new HBox(10);
+            pagingBox.setStyle("-fx-alignment: CENTER_RIGHT; -fx-padding: 8 0 0 0;");
+
+            Button prevBtn = new Button("◀");
+            prevBtn.setDisable(recentPage == 0);
+            prevBtn.setStyle("-fx-background-color: #e2e8f0; -fx-background-radius: 6; -fx-cursor: hand;");
+            prevBtn.setOnAction(e -> { recentPage--; renderRecentActivities(); });
+
+            Label pageLabel = new Label((recentPage + 1) + "/" + totalPages);
+            pageLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #64748b;");
+
+            Button nextBtn = new Button("▶");
+            nextBtn.setDisable(recentPage >= totalPages - 1);
+            nextBtn.setStyle("-fx-background-color: #e2e8f0; -fx-background-radius: 6; -fx-cursor: hand;");
+            nextBtn.setOnAction(e -> { recentPage++; renderRecentActivities(); });
+
+            pagingBox.getChildren().addAll(prevBtn, pageLabel, nextBtn);
+            recentActivitiesBox.getChildren().add(pagingBox);
         }
     }
 
@@ -166,21 +210,23 @@ public class DashboardController extends BaseController {
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
+            String respBody = response.body() != null ? response.body().string() : "";
+            System.out.println("[DEBUG] 仪表板hotBooks响应: code=" + response.code() + " body=" + respBody);
             if (response.isSuccessful()) {
-                String respBody = response.body().string();
                 List<HotBook> books = gson.fromJson(
                         extractData(respBody),
                         new TypeToken<List<HotBook>>(){}.getType()
                 );
                 Platform.runLater(() -> renderHotBooks(books));
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("[DEBUG] loadHotBooks异常: " + e.getMessage());
         }
     }
 
     private void renderHotBooks(List<HotBook> books) {
         hotBooksBox.getChildren().clear();
+        if (books == null) return;
         for (int i = 0; i < Math.min(books.size(), 5); i++) {
             HotBook book = books.get(i);
             HBox bookItem = new HBox(12);
@@ -221,21 +267,26 @@ public class DashboardController extends BaseController {
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
+            String respBody = response.body() != null ? response.body().string() : "";
+            System.out.println("[DEBUG] 仪表板activeUsers响应: code=" + response.code() + " body=" + respBody);
             if (response.isSuccessful()) {
-                String respBody = response.body().string();
                 List<ActiveUser> users = gson.fromJson(
                         extractData(respBody),
                         new TypeToken<List<ActiveUser>>(){}.getType()
                 );
                 Platform.runLater(() -> renderActiveUsers(users));
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("[DEBUG] loadActiveUsers异常: " + e.getMessage());
         }
     }
 
     private void renderActiveUsers(List<ActiveUser> users) {
         activeUsersBox.getChildren().clear();
+        if (users == null || users.isEmpty()) {
+            activeUsersBox.getChildren().add(new Label("暂无数据"));
+            return;
+        }
         for (int i = 0; i < Math.min(users.size(), 4); i++) {
             ActiveUser user = users.get(i);
             HBox userItem = new HBox(12);
@@ -244,8 +295,9 @@ public class DashboardController extends BaseController {
             // 头像圆圈
             javafx.scene.layout.StackPane avatar = new javafx.scene.layout.StackPane();
             avatar.setStyle("-fx-background-color: #ede9fe; -fx-background-radius: 16; -fx-min-width: 32; -fx-max-width: 32; -fx-min-height: 32; -fx-max-height: 32;");
-            Label avatarText = new Label(user.getName() != null && !user.getName().isEmpty() ?
-                    user.getName().substring(0, 1).toUpperCase() : "?");
+            String userName = user.getName();
+            Label avatarText = new Label(userName != null && !userName.isEmpty() ?
+                    userName.substring(0, 1).toUpperCase() : "?");
             avatarText.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #7c3aed;");
             avatar.getChildren().add(avatarText);
 
@@ -253,18 +305,16 @@ public class DashboardController extends BaseController {
             content.setStyle("-fx-alignment: CENTER_LEFT;");
             HBox.setHgrow(content, Priority.ALWAYS);
 
-            Label name = new Label(user.getName());
+            Label name = new Label(userName);
             name.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
 
-            Label email = new Label(user.getEmail());
-            email.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
+            String role = (user.getUserTypeId() != null && user.getUserTypeId() == 2) ? "管理员" : "普通用户";
+            Label roleLabel = new Label(role);
+            roleLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
 
-            content.getChildren().addAll(name, email);
+            content.getChildren().addAll(name, roleLabel);
 
-            Label count = new Label(user.getBorrowCount() + " 本");
-            count.setStyle("-fx-font-size: 14px; -fx-text-fill: #22c55e; -fx-font-weight: bold;");
-
-            userItem.getChildren().addAll(avatar, content, count);
+            userItem.getChildren().addAll(avatar, content);
             activeUsersBox.getChildren().add(userItem);
         }
     }

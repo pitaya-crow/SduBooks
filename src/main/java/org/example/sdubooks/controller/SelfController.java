@@ -1,5 +1,6 @@
 package org.example.sdubooks.controller;
 
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -16,13 +17,13 @@ import okhttp3.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class SelfController extends BaseController {
 
     @FXML private Label usernameLabel;
-    @FXML private Label emailLabel;
     @FXML private Label joinDateLabel;
     @FXML private Label totalBorrowsLabel;
     @FXML private Label currentBorrowsLabel;
@@ -41,6 +42,17 @@ public class SelfController extends BaseController {
     public void initialize() {
         loadUserStats();
         loadBorrowRecords();
+    }
+
+    private String extractData(String responseBody) {
+        if (responseBody == null || responseBody.isEmpty()) return "{}";
+        try {
+            JsonObject json = gson.fromJson(responseBody, JsonObject.class);
+            if (json != null && json.has("data") && !json.get("data").isJsonNull()) {
+                return json.get("data").toString();
+            }
+        } catch (Exception ignored) {}
+        return responseBody;
     }
 
     @FXML
@@ -72,29 +84,166 @@ public class SelfController extends BaseController {
         activeBtn.setStyle(activeStyle);
     }
 
+    private UserStats currentUserStats;
+
+    private Long getCurrentUserId() {
+        String token = getToken();
+        if (token == null) return null;
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length >= 2) {
+                String payload = new String(java.util.Base64.getUrlDecoder().decode(parts[1]));
+                JsonObject json = gson.fromJson(payload, JsonObject.class);
+                String[] claimNames = {"userId", "id", "sub", "user_id"};
+                for (String claim : claimNames) {
+                    if (json.has(claim)) {
+                        try { return json.get(claim).getAsLong(); } catch (Exception ignored) {}
+                    }
+                }
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return null;
+    }
+
     private void loadUserStats() {
         String token = getToken();
+        Long userId = getCurrentUserId();
+        if (userId == null) return;
+
         Request request = new Request.Builder()
-                .url(STATS_URL)
+                .url(STATS_URL + "?userId=" + userId)
                 .header("Authorization", "Bearer " + token)
                 .build();
 
         new Thread(() -> {
             try (Response response = httpClient.newCall(request).execute()) {
-                if (response.isSuccessful() && response.body() != null) {
-                    UserStats stats = gson.fromJson(response.body().string(), UserStats.class);
-                    Platform.runLater(() -> {
-                        usernameLabel.setText(stats.getUsername());
-                        emailLabel.setText(stats.getEmail());
-                        joinDateLabel.setText("加入时间：" + stats.getJoinDate());
-                        totalBorrowsLabel.setText(String.valueOf(stats.getTotalBorrows()));
-                        currentBorrowsLabel.setText(String.valueOf(stats.getCurrentBorrows()));
-                    });
+                String respBody = response.body() != null ? response.body().string() : "";
+                System.out.println("[DEBUG] 用户信息响应: code=" + response.code() + " body=" + respBody);
+                if (response.isSuccessful()) {
+                    UserStats stats = gson.fromJson(extractData(respBody), UserStats.class);
+                    if (stats != null) {
+                        currentUserStats = stats;
+                        Platform.runLater(() -> {
+                            usernameLabel.setText(stats.getUserName() != null ? stats.getUserName() : "");
+                            joinDateLabel.setText("加入时间：" + (stats.getCreateTime() != null ? stats.getCreateTime() : "未知"));
+                            totalBorrowsLabel.setText(String.valueOf(stats.getTotalBorrows() != null ? stats.getTotalBorrows() : 0));
+                            currentBorrowsLabel.setText(String.valueOf(stats.getCurrentBorrows() != null ? stats.getCurrentBorrows() : 0));
+                        });
+                    }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() ->
-                        showAlert("错误", "加载用户信息失败", Alert.AlertType.ERROR)
+                        showAlert("错误", "加载用户信息失败: " + e.getMessage(), Alert.AlertType.ERROR)
+                );
+            }
+        }).start();
+    }
+
+    @FXML
+    private void handleEditProfile() {
+        if (currentUserStats == null) {
+            showAlert("提示", "用户信息未加载，请稍后重试", Alert.AlertType.WARNING);
+            return;
+        }
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("编辑个人资料");
+        dialog.setHeaderText(null);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.getDialogPane().setPrefWidth(400);
+
+        javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
+        grid.setHgap(12);
+        grid.setVgap(14);
+        grid.setPadding(new javafx.geometry.Insets(20));
+
+        javafx.scene.layout.ColumnConstraints labelCol = new javafx.scene.layout.ColumnConstraints();
+        labelCol.setMinWidth(60);
+        javafx.scene.layout.ColumnConstraints fieldCol = new javafx.scene.layout.ColumnConstraints();
+        fieldCol.setHgrow(javafx.scene.layout.Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(labelCol, fieldCol);
+
+        String fieldStyle = "-fx-background-radius: 6; -fx-border-radius: 6; -fx-border-color: #e2e8f0; -fx-padding: 8;";
+        String labelStyle = "-fx-font-size: 13px; -fx-text-fill: #475569; -fx-padding: 8 0;";
+
+        TextField usernameField = new TextField(currentUserStats.getUserName() != null ? currentUserStats.getUserName() : "");
+        usernameField.setStyle(fieldStyle);
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText("不修改请留空");
+        passwordField.setStyle(fieldStyle);
+
+        int row = 0;
+        Label lbl1 = new Label("用户名:");
+        lbl1.setStyle(labelStyle);
+        grid.add(lbl1, 0, row);
+        grid.add(usernameField, 1, row++);
+
+        Label lbl3 = new Label("新密码:");
+        lbl3.setStyle(labelStyle);
+        grid.add(lbl3, 0, row);
+        grid.add(passwordField, 1, row++);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == ButtonType.OK) {
+                String newUsername = usernameField.getText().trim();
+                String newPassword = passwordField.getText();
+
+                if (newUsername.isEmpty()) {
+                    showAlert("提示", "用户名不能为空", Alert.AlertType.WARNING);
+                    return null;
+                }
+
+                updateProfile(newUsername, newPassword);
+            }
+            return btn;
+        });
+
+        dialog.showAndWait();
+    }
+
+    private void updateProfile(String username, String password) {
+        String token = getToken();
+        Long userId = getCurrentUserId();
+        if (token == null || userId == null) return;
+
+        JsonObject body = new JsonObject();
+        body.addProperty("personId", userId.intValue());
+        body.addProperty("userName", username);
+        if (password != null && !password.isEmpty()) {
+            body.addProperty("password", password);
+        }
+
+        String json = body.toString();
+        System.out.println("[DEBUG] 更新用户信息: " + json);
+
+        RequestBody reqBody = RequestBody.create(json, MediaType.get("application/json"));
+        Request request = new Request.Builder()
+                .url(USER_BASE_URL + "/info")
+                .header("Authorization", "Bearer " + token)
+                .put(reqBody)
+                .build();
+
+        new Thread(() -> {
+            try (Response response = httpClient.newCall(request).execute()) {
+                String respBody = response.body() != null ? response.body().string() : "";
+                System.out.println("[DEBUG] 更新用户信息响应: code=" + response.code() + " body=" + respBody);
+                if (response.isSuccessful()) {
+                    Platform.runLater(() -> {
+                        showAlert("成功", "个人资料已更新", Alert.AlertType.INFORMATION);
+                        loadUserStats(); // 刷新数据
+                    });
+                } else {
+                    Platform.runLater(() ->
+                            showAlert("失败", "更新失败: " + respBody, Alert.AlertType.ERROR)
+                    );
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() ->
+                        showAlert("错误", "网络异常: " + e.getMessage(), Alert.AlertType.ERROR)
                 );
             }
         }).start();
@@ -102,24 +251,29 @@ public class SelfController extends BaseController {
 
     private void loadBorrowRecords() {
         String token = getToken();
+        Long userId = getCurrentUserId();
+        if (userId == null) return;
+
         Request request = new Request.Builder()
-                .url(BORROWS_URL)
+                .url(BORROWS_URL + "?userId=" + userId)
                 .header("Authorization", "Bearer " + token)
                 .build();
 
         new Thread(() -> {
             try (Response response = httpClient.newCall(request).execute()) {
-                if (response.isSuccessful() && response.body() != null) {
+                String respBody = response.body() != null ? response.body().string() : "";
+                System.out.println("[DEBUG] 借阅记录响应: code=" + response.code() + " body=" + respBody);
+                if (response.isSuccessful()) {
                     List<BorrowRecord> records = gson.fromJson(
-                            response.body().string(),
+                            extractData(respBody),
                             new TypeToken<List<BorrowRecord>>(){}.getType()
                     );
-                    Platform.runLater(() -> renderBorrowRecords(records));
+                    Platform.runLater(() -> renderBorrowRecords(records != null ? records : new java.util.ArrayList<>()));
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() ->
-                        showAlert("错误", "加载借阅记录失败", Alert.AlertType.ERROR)
+                        showAlert("错误", "加载借阅记录失败: " + e.getMessage(), Alert.AlertType.ERROR)
                 );
             }
         }).start();
@@ -155,79 +309,75 @@ public class SelfController extends BaseController {
         infoBox.setStyle("-fx-alignment: CENTER_LEFT;");
         HBox.setHgrow(infoBox, Priority.ALWAYS);
 
-        Label titleLabel = new Label(record.getBookTitle());
+        Label titleLabel = new Label(record.getBookTitle() != null ? record.getBookTitle() : "图书");
         titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
+
+        // 日期信息
+        String borrowDateStr = record.getBorrowedAt() != null ? record.getBorrowedAt().toLocalDate().toString() : "";
+        String dueDateStr = record.getDueAt() != null ? record.getDueAt().toLocalDate().toString() : "";
+        Label dateLabel = new Label("借阅: " + borrowDateStr + "  应还: " + dueDateStr);
+        dateLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #64748b;");
 
         // 状态标签
         Label statusLabel = new Label();
-        String status = record.getStatus();
-        if ("BORROWING".equals(status) || "借阅中".equals(status)) {
-            statusLabel.setText("借阅中");
-            statusLabel.setStyle("-fx-background-color: #3b82f6; -fx-background-radius: 15; " +
-                    "-fx-padding: 5 15; -fx-font-size: 14px; -fx-text-fill: white; -fx-font-weight: bold;");
-        } else if ("RETURNED".equals(status) || "已归还".equals(status)) {
+        boolean returned = record.isReturned();
+        if (returned) {
             statusLabel.setText("已归还");
             statusLabel.setStyle("-fx-background-color: #22c55e; -fx-background-radius: 15; " +
                     "-fx-padding: 5 15; -fx-font-size: 14px; -fx-text-fill: white; -fx-font-weight: bold;");
-        } else if ("OVERDUE".equals(status) || "已逾期".equals(status)) {
-            statusLabel.setText("已逾期");
-            statusLabel.setStyle("-fx-background-color: #ef4444; -fx-background-radius: 15; " +
-                    "-fx-padding: 5 15; -fx-font-size: 14px; -fx-text-fill: white; -fx-font-weight: bold;");
+        } else {
+            // 检查是否逾期
+            boolean overdue = false;
+            if (record.getDueAt() != null && java.time.LocalDateTime.now().isAfter(record.getDueAt())) {
+                overdue = true;
+            }
+            if (overdue) {
+                statusLabel.setText("已逾期");
+                statusLabel.setStyle("-fx-background-color: #ef4444; -fx-background-radius: 15; " +
+                        "-fx-padding: 5 15; -fx-font-size: 14px; -fx-text-fill: white; -fx-font-weight: bold;");
+            } else {
+                statusLabel.setText("借阅中");
+                statusLabel.setStyle("-fx-background-color: #3b82f6; -fx-background-radius: 15; " +
+                        "-fx-padding: 5 15; -fx-font-size: 14px; -fx-text-fill: white; -fx-font-weight: bold;");
+            }
         }
 
-        // 日期信息
-        HBox dateBox = new HBox(30);
-        dateBox.setStyle("-fx-alignment: CENTER_LEFT;");
-
-        Label borrowDateLabel = new Label("借阅日期：" + record.getBorrowDate());
-        borrowDateLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #64748b;");
-
-        Label dueDateLabel = new Label("应还日期：" + record.getDueDate());
-        dueDateLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #64748b;");
-
-        if ("OVERDUE".equals(status) || "已逾期".equals(status)) {
-            dueDateLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #ef4444; -fx-font-weight: bold;");
-        }
-
-        dateBox.getChildren().addAll(borrowDateLabel, dueDateLabel);
-
-        infoBox.getChildren().addAll(titleLabel, statusLabel, dateBox);
+        infoBox.getChildren().addAll(titleLabel, dateLabel, statusLabel);
 
         // 右侧操作区
         VBox actionBox = new VBox(10);
         actionBox.setStyle("-fx-alignment: CENTER_RIGHT;");
 
-        if ("BORROWING".equals(status) || "借阅中".equals(status)) {
-            Button returnBtn = new Button("归还图书");
-            returnBtn.setStyle("-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 10; " +
-                    "-fx-padding: 8 20; -fx-font-size: 14px; -fx-cursor: hand;");
+        if (!returned) {
+            // 检查逾期
+            boolean overdue = false;
+            long overdueDays = 0;
+            if (record.getDueAt() != null && LocalDateTime.now().isAfter(record.getDueAt())) {
+                overdue = true;
+                overdueDays = ChronoUnit.DAYS.between(record.getDueAt(), LocalDateTime.now());
+            }
+
+            if (overdue) {
+                Label overdueInfo = new Label("逾期 " + overdueDays + " 天");
+                overdueInfo.setStyle("-fx-font-size: 14px; -fx-text-fill: #ef4444; -fx-font-weight: bold;");
+                actionBox.getChildren().add(overdueInfo);
+            }
+
+            Button returnBtn = new Button(overdue ? "立即归还" : "归还图书");
+            returnBtn.setStyle(overdue ?
+                    "-fx-background-color:#ef4444;-fx-text-fill:white;-fx-background-radius:10;-fx-padding:8 20;" :
+                    "-fx-background-color:white;-fx-border-color:#cbd5e1;-fx-border-radius:10;-fx-padding:8 20;");
             returnBtn.setOnAction(e -> handleReturnBook(record));
             actionBox.getChildren().add(returnBtn);
-        } else if ("RETURNED".equals(status) || "已归还".equals(status)) {
+        } else {
             Label checkIcon = new Label("✓");
             checkIcon.setStyle("-fx-font-size: 24px; -fx-text-fill: #22c55e;");
             actionBox.getChildren().add(checkIcon);
-
-            if (record.getReturnDate() != null) {
-                Label returnDateLabel = new Label("归还日期：" + record.getReturnDate());
-                returnDateLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #64748b;");
+            if (record.getReturnedAt() != null) {
+                Label returnDateLabel = new Label("归还: " + record.getReturnedAt().toLocalDate());
+                returnDateLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #64748b;");
                 actionBox.getChildren().add(returnDateLabel);
             }
-        } else if ("OVERDUE".equals(status) || "已逾期".equals(status)) {
-            Label alertIcon = new Label("⚠");
-            alertIcon.setStyle("-fx-font-size: 24px; -fx-text-fill: #ef4444;");
-            actionBox.getChildren().add(alertIcon);
-
-            long overdueDays = ChronoUnit.DAYS.between(record.getDueDate(), LocalDate.now());
-            Label overdueLabel = new Label("已逾期 " + overdueDays + " 天");
-            overdueLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #ef4444; -fx-font-weight: bold;");
-
-            Button urgentReturnBtn = new Button("立即归还");
-            urgentReturnBtn.setStyle("-fx-background-color: #ef4444; -fx-background-radius: 10; " +
-                    "-fx-padding: 8 20; -fx-font-size: 14px; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
-            urgentReturnBtn.setOnAction(e -> handleReturnBook(record));
-
-            actionBox.getChildren().addAll(overdueLabel, urgentReturnBtn);
         }
 
         content.getChildren().addAll(coverBox, infoBox, actionBox);
@@ -251,12 +401,15 @@ public class SelfController extends BaseController {
 
     private void performReturnBook(BorrowRecord record) {
         String token = getToken();
-        String url = "http://10.27.241.94:8081/api/borrow/return/" + record.getBookId();
+        String url = BASE_URL + "/borrow/return";
+
+        JsonObject body = new JsonObject();
+        body.addProperty("id", record.getId());
 
         Request request = new Request.Builder()
                 .url(url)
                 .header("Authorization", "Bearer " + token)
-                .post(RequestBody.create("", MediaType.get("application/json")))
+                .put(RequestBody.create(body.toString(), MediaType.get("application/json")))
                 .build();
 
         new Thread(() -> {
@@ -282,24 +435,29 @@ public class SelfController extends BaseController {
 
     private void loadReviews() {
         String token = getToken();
+        Long userId = getCurrentUserId();
+        if (userId == null) return;
+
         Request request = new Request.Builder()
-                .url(REVIEWS_URL)
+                .url(REVIEWS_URL + "?userId=" + userId)
                 .header("Authorization", "Bearer " + token)
                 .build();
 
         new Thread(() -> {
             try (Response response = httpClient.newCall(request).execute()) {
-                if (response.isSuccessful() && response.body() != null) {
+                String respBody = response.body() != null ? response.body().string() : "";
+                System.out.println("[DEBUG] 书评响应: code=" + response.code() + " body=" + respBody);
+                if (response.isSuccessful()) {
                     List<BookReview> reviews = gson.fromJson(
-                            response.body().string(),
+                            extractData(respBody),
                             new TypeToken<List<BookReview>>(){}.getType()
                     );
-                    Platform.runLater(() -> renderReviews(reviews));
+                    Platform.runLater(() -> renderReviews(reviews != null ? reviews : new java.util.ArrayList<>()));
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() ->
-                        showAlert("错误", "加载书评失败", Alert.AlertType.ERROR)
+                        showAlert("错误", "加载书评失败: " + e.getMessage(), Alert.AlertType.ERROR)
                 );
             }
         }).start();
@@ -328,7 +486,7 @@ public class SelfController extends BaseController {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label dateLabel = new Label(review.getReviewDate().toString());
+        Label dateLabel = new Label(review.getCreateTime() != null ? review.getCreateTime().toLocalDate().toString() : "");
         dateLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #64748b;");
 
         header.getChildren().addAll(titleLabel, spacer, dateLabel);
@@ -336,13 +494,13 @@ public class SelfController extends BaseController {
         // 图书链接
         Hyperlink bookLink = new Hyperlink("查看图书详情");
         bookLink.setStyle("-fx-font-size: 14px;");
-        bookLink.setOnAction(e -> viewBookDetail(review.getBookId()));
+        bookLink.setOnAction(e -> viewBookDetail(review.getBookId() != null ? review.getBookId().longValue() : null));
 
         // 评分
         HBox ratingBox = new HBox(5);
         ratingBox.setStyle("-fx-alignment: CENTER_LEFT;");
 
-        int rating = review.getRating().intValue();
+        int rating = review.getRating() != null ? review.getRating().intValue() : 0;
         for (int i = 0; i < 5; i++) {
             Label star = new Label(i < rating ? "★" : "☆");
             star.setStyle("-fx-font-size: 20px; -fx-text-fill: " + (i < rating ? "#fbbf24" : "#cbd5e1") + ";");
@@ -354,7 +512,7 @@ public class SelfController extends BaseController {
         ratingBox.getChildren().add(ratingText);
 
         // 评论内容
-        Label contentLabel = new Label(review.getContent());
+        Label contentLabel = new Label(review.getContent() != null ? review.getContent() : "");
         contentLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #334155; -fx-line-spacing: 5;");
         contentLabel.setWrapText(true);
 
@@ -365,26 +523,8 @@ public class SelfController extends BaseController {
 
     private void viewBookDetail(Long bookId) {
         System.out.println("查看图书详情，图书ID: " + bookId);
-        try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
-                    getClass().getResource("/org/example/sdubooks/book-detail.fxml"));
-            javafx.scene.Scene scene = new javafx.scene.Scene(loader.load());
-
-            BookDetailController controller = loader.getController();
-            controller.setBookId(bookId);
-
-            Stage stage = getCurrentStage();
-            if (stage != null) {
-                stage.setScene(scene);
-                stage.setTitle("图书详情");
-                stage.setMaximized(false);
-                stage.setMaximized(true);
-                stage.show();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            showAlert("错误", "无法加载图书详情页", javafx.scene.control.Alert.AlertType.ERROR);
-        }
+        BookDetailController.setSelectedBookId(bookId);
+        loadPageInShell("/org/example/sdubooks/book-detail.fxml");
     }
 
     @Override

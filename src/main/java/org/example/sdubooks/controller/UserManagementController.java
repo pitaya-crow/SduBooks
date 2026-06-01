@@ -3,22 +3,29 @@ package org.example.sdubooks.controller;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
-import org.example.sdubooks.model.PageResponse;
+import javafx.scene.layout.*;
 import org.example.sdubooks.model.User;
 import okhttp3.*;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class UserManagementController extends BaseController {
 
-    // UI组件
     @FXML private TextField searchField;
     @FXML private TableView<User> usersTable;
     @FXML private Label totalUsersLabel;
@@ -26,8 +33,8 @@ public class UserManagementController extends BaseController {
     @FXML private Button prevPageBtn;
     @FXML private Button nextPageBtn;
     @FXML private CheckBox selectAllCheckbox;
+    @FXML private Button batchDeleteBtn;
 
-    // 数据
     private ObservableList<User> userList = FXCollections.observableArrayList();
     private List<User> selectedUsers = new ArrayList<>();
     private int currentPage = 0;
@@ -35,352 +42,447 @@ public class UserManagementController extends BaseController {
     private int totalPages = 1;
     private long totalElements = 0;
 
-    // 接口路径
     private static final String BASE_URL = "http://localhost:8081/api/admin";
-    private static final String USERS_URL = BASE_URL + "/admin/users";
-    private static final String UPDATE_STATUS_URL = BASE_URL + "/admin/users/%d/status";
-    private static final String DELETE_USER_URL = BASE_URL + "/admin/users/%d";
+    private static final String USERS_URL = BASE_URL + "/users";
+    private static final String UPDATE_STATUS_URL = BASE_URL + "/user/%d/status";
+    private static final String DELETE_USER_URL = BASE_URL + "/user/%d";
+    private static final String USER_BORROWS_URL = BASE_URL + "/user/%d/borrows";
+    private static final String RETURN_URL = BASE_URL + "/borrow/%d/return";
+
+    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final double OVERDUE_RATE = 0.1; // 每天0.1元
 
     @FXML
     public void initialize() {
-        // 初始化表格列
         setupTableColumns();
-
-        // 加载用户列表
         loadUsers(currentPage);
     }
 
-    // 设置表格列
+    // ==================== 表格列配置 ====================
     private void setupTableColumns() {
+        // 复选框列
+        TableColumn<User, Boolean> checkCol = new TableColumn<>("");
+        checkCol.setCellValueFactory(data -> {
+            User u = data.getValue();
+            boolean selected = selectedUsers.contains(u);
+            return new SimpleBooleanProperty(selected);
+        });
+        checkCol.setCellFactory(col -> new TableCell<>() {
+            private final CheckBox cb = new CheckBox();
+            {
+                cb.setOnAction(e -> {
+                    User user = getTableView().getItems().get(getIndex());
+                    if (cb.isSelected()) {
+                        if (!selectedUsers.contains(user)) selectedUsers.add(user);
+                    } else {
+                        selectedUsers.remove(user);
+                    }
+                    updateBatchDeleteBtn();
+                });
+            }
+            @Override
+            protected void updateItem(Boolean item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    User user = getTableView().getItems().get(getIndex());
+                    cb.setSelected(selectedUsers.contains(user));
+                    setGraphic(cb);
+                }
+            }
+        });
+        checkCol.setPrefWidth(40);
+        checkCol.setResizable(false);
+
         // 用户名列
         TableColumn<User, String> usernameCol = new TableColumn<>("用户名");
-        usernameCol.setCellValueFactory(new PropertyValueFactory<>("username"));
+        usernameCol.setCellValueFactory(d -> new SimpleStringProperty(
+                d.getValue().getUserName() != null ? d.getValue().getUserName() : ""));
         usernameCol.setPrefWidth(150);
-
-        // 邮箱列
-        TableColumn<User, String> emailCol = new TableColumn<>("邮箱");
-        emailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
-        emailCol.setPrefWidth(200);
 
         // 角色列
         TableColumn<User, String> roleCol = new TableColumn<>("角色");
-        roleCol.setCellValueFactory(new PropertyValueFactory<>("role"));
-        roleCol.setCellFactory(column -> {
-            TableCell<User, String> cell = new TableCell<>();
-            cell.textProperty().bind(cell.itemProperty());
-            cell.setStyle("-fx-alignment: CENTER;");
-            cell.itemProperty().addListener((obs, oldVal, newVal) -> {
-                if ("ADMIN".equals(newVal)) {
-                    cell.setStyle("-fx-font-weight: bold; -fx-text-fill: #ff5722; -fx-alignment: CENTER;");
-                } else {
-                    cell.setStyle("-fx-text-fill: #333; -fx-alignment: CENTER;");
-                }
-            });
-            return cell;
+        roleCol.setCellValueFactory(d -> {
+            Integer typeId = d.getValue().getUserTypeId();
+            return new SimpleStringProperty(typeId != null && typeId == 2 ? "ADMIN" : "USER");
         });
-        roleCol.setPrefWidth(100);
-
-        // 状态列（使用自定义单元格工厂）
-        TableColumn<User, Boolean> statusCol = new TableColumn<>("状态");
-        statusCol.setCellValueFactory(new PropertyValueFactory<>("enabled"));
-        statusCol.setCellFactory(column -> new TableCell<>() {
-            private final ToggleButton toggleBtn = new ToggleButton();
-
-            {
-                toggleBtn.setOnAction(event -> {
-                    User user = getTableView().getItems().get(getIndex());
-                    toggleUserStatus(user);
-                });
+        roleCol.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String role, boolean empty) {
+                super.updateItem(role, empty);
+                if (empty || role == null) { setText(null); setStyle(""); }
+                else {
+                    setText(role);
+                    setStyle("ADMIN".equals(role) ?
+                            "-fx-font-weight:bold;-fx-text-fill:#ff5722;-fx-alignment:CENTER;" :
+                            "-fx-text-fill:#333;-fx-alignment:CENTER;");
+                }
             }
+        });
+        roleCol.setPrefWidth(80);
 
+        // 状态列
+        TableColumn<User, Boolean> statusCol = new TableColumn<>("状态");
+        statusCol.setCellValueFactory(d -> new SimpleBooleanProperty(
+                d.getValue().getStatus() != null && d.getValue().getStatus() == 1));
+        statusCol.setCellFactory(col -> new TableCell<>() {
+            private final ToggleButton btn = new ToggleButton();
+            { btn.setOnAction(e -> toggleUserStatus(getTableView().getItems().get(getIndex()))); }
             @Override
             protected void updateItem(Boolean enabled, boolean empty) {
                 super.updateItem(enabled, empty);
-                if (empty || enabled == null) {
-                    setGraphic(null);
-                } else {
-                    toggleBtn.setSelected(enabled);
-                    toggleBtn.setText(enabled ? "✓ 启用" : "✗ 禁用");
-                    toggleBtn.setStyle(enabled ?
-                            "-fx-background-color: #4CAF50; -fx-text-fill: white;" :
-                            "-fx-background-color: #f44336; -fx-text-fill: white;");
-                    setGraphic(toggleBtn);
-                }
+                if (empty || enabled == null) { setGraphic(null); return; }
+                btn.setSelected(enabled);
+                btn.setText(enabled ? "✓ 启用" : "✗ 禁用");
+                btn.setStyle(enabled ?
+                        "-fx-background-color:#4CAF50;-fx-text-fill:white;" :
+                        "-fx-background-color:#f44336;-fx-text-fill:white;");
+                setGraphic(btn);
             }
         });
-        statusCol.setPrefWidth(120);
+        statusCol.setPrefWidth(100);
 
-        // 操作列（只有删除按钮）
+        // 操作列（查看借阅 + 删除）
         TableColumn<User, Void> actionCol = new TableColumn<>("操作");
         actionCol.setCellFactory(param -> new TableCell<>() {
+            private final Button borrowBtn = new Button("📖 借阅管理");
             private final Button deleteBtn = new Button("🗑️");
-
+            private final HBox box = new HBox(6, borrowBtn, deleteBtn);
             {
-                deleteBtn.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-size: 14px;");
-                deleteBtn.setOnAction(event -> {
-                    User user = getTableView().getItems().get(getIndex());
-                    deleteUser(user);
-                });
+                borrowBtn.setStyle("-fx-background-color:#3b82f6;-fx-text-fill:white;-fx-font-size:12px;");
+                deleteBtn.setStyle("-fx-background-color:#f44336;-fx-text-fill:white;-fx-font-size:12px;");
+                borrowBtn.setOnAction(e -> showUserBorrows(getTableView().getItems().get(getIndex())));
+                deleteBtn.setOnAction(e -> deleteUser(getTableView().getItems().get(getIndex())));
             }
-
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : deleteBtn);
+                setGraphic(empty ? null : box);
             }
         });
-        actionCol.setPrefWidth(100);
+        actionCol.setPrefWidth(160);
 
-        // 添加所有列到表格
         usersTable.getColumns().clear();
-        usersTable.getColumns().addAll(usernameCol, emailCol, roleCol, statusCol, actionCol);
+        usersTable.getColumns().addAll(checkCol, usernameCol, roleCol, statusCol, actionCol);
         usersTable.setItems(userList);
     }
 
     // ==================== 数据加载 ====================
-
-    /**
-     * 从包装响应中提取 data 字段
-     */
     private String extractData(String responseBody) {
+        if (responseBody == null || responseBody.isEmpty()) return "[]";
         try {
             JsonObject json = gson.fromJson(responseBody, JsonObject.class);
-            if (json.has("data")) {
+            if (json != null && json.has("data") && !json.get("data").isJsonNull()) {
                 return json.get("data").toString();
             }
         } catch (Exception ignored) {}
         return responseBody;
     }
 
-    // 加载用户列表
     private void loadUsers(int page) {
         String token = getToken();
-        if (token == null) {
-            showAlert("错误", "未登录，请重新登录", Alert.AlertType.ERROR);
-            return;
+        if (token == null) { showAlert("错误", "未登录", Alert.AlertType.ERROR); return; }
+
+        String keyword = searchField.getText().trim();
+        String url = USERS_URL;
+        if (!keyword.isEmpty()) {
+            url += "?keyword=" + keyword;
         }
 
-        String url = String.format("%s?page=%d&size=%d", USERS_URL, page, pageSize);
-        if (!searchField.getText().trim().isEmpty()) {
-            url += "&keyword=" + searchField.getText().trim();
-        }
         final String finalUrl = url;
-
         new Thread(() -> {
             try {
-                Request request = new Request.Builder()
-                        .url(finalUrl)
-                        .header("Authorization", "Bearer " + token)
-                        .build();
+                Request req = new Request.Builder().url(finalUrl)
+                        .header("Authorization", "Bearer " + token).build();
+                try (Response resp = httpClient.newCall(req).execute()) {
+                    String body = resp.body() != null ? resp.body().string() : "";
+                    System.out.println("[DEBUG] 用户列表: code=" + resp.code() + " body=" + body);
+                    if (resp.isSuccessful()) {
+                        List<User> all = gson.fromJson(extractData(body),
+                                new TypeToken<List<User>>(){}.getType());
+                        if (all == null) all = new ArrayList<>();
 
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (response.isSuccessful()) {
-                        String respBody = response.body().string();
-                        System.out.println("[DEBUG] 用户列表响应: " + respBody);
+                        final List<User> finalAll = all;
+                        int size = all.size();
+                        int from = Math.min(page * pageSize, size);
+                        int to = Math.min(from + pageSize, size);
+                        List<User> sub = all.subList(from, to);
+                        int tp = Math.max((int) Math.ceil((double) size / pageSize), 1);
 
-                        PageResponse<User> pageResponse = gson.fromJson(
-                                extractData(respBody),
-                                new TypeToken<PageResponse<User>>(){}.getType()
-                        );
-
+                        final int fTp = tp;
+                        final List<User> fSub = sub;
                         Platform.runLater(() -> {
-                            if (pageResponse.getContent() != null) {
-                                userList.setAll(pageResponse.getContent());
-                            } else {
-                                userList.clear();
-                            }
-                            totalElements = pageResponse.getTotalElements();
-                            totalPages = pageResponse.getTotalPages();
-                            currentPage = pageResponse.getPageNumber();
+                            selectedUsers.clear();
+                            userList.setAll(fSub);
+                            totalElements = size;
+                            totalPages = fTp;
+                            currentPage = page;
                             totalUsersLabel.setText(String.valueOf(totalElements));
                             updatePageInfo();
                             updatePageButtons();
+                            updateBatchDeleteBtn();
                         });
-                    } else {
-                        Platform.runLater(() ->
-                                showAlert("错误", "加载用户列表失败: " + response.message(), Alert.AlertType.ERROR)
-                        );
                     }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
-                Platform.runLater(() ->
-                        showAlert("错误", "网络请求失败: " + e.getMessage(), Alert.AlertType.ERROR)
-                );
+                Platform.runLater(() -> showAlert("错误", "加载失败: " + e.getMessage(), Alert.AlertType.ERROR));
+            }
+        }).start();
+    }
+
+    // ==================== 用户借阅记录弹窗 ====================
+    private void showUserBorrows(User user) {
+        String token = getToken();
+        if (token == null) return;
+
+        String url = String.format(USER_BORROWS_URL, user.getPersonId());
+        new Thread(() -> {
+            try {
+                Request req = new Request.Builder().url(url)
+                        .header("Authorization", "Bearer " + token).build();
+                try (Response resp = httpClient.newCall(req).execute()) {
+                    String body = resp.body() != null ? resp.body().string() : "";
+                    System.out.println("[DEBUG] 用户借阅: " + body);
+                    if (resp.isSuccessful()) {
+                        List<Map<String, Object>> records = gson.fromJson(extractData(body),
+                                new TypeToken<List<Map<String, Object>>>(){}.getType());
+                        final List<Map<String, Object>> finalRecords = records != null ? records : new ArrayList<>();
+                        Platform.runLater(() -> showBorrowDialog(user, finalRecords));
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void showBorrowDialog(User user, List<Map<String, Object>> records) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("借阅记录 — " + user.getUserName());
+        dialog.setHeaderText(null);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefWidth(700);
+
+        VBox container = new VBox(12);
+        container.setPadding(new Insets(20));
+
+        double totalFee = 0;
+
+        if (records.isEmpty()) {
+            container.getChildren().add(new Label("该用户暂无借阅记录"));
+        } else {
+            for (Map<String, Object> rec : records) {
+                VBox card = new VBox(8);
+                card.setStyle("-fx-background-color:#f8fafc;-fx-background-radius:10;-fx-padding:12;");
+
+                String bookTitle = rec.get("bookTitle") != null ? rec.get("bookTitle").toString() : "未知";
+                String borrowedAt = rec.get("borrowedAt") != null ? rec.get("borrowedAt").toString().replace("T", " ").substring(0, Math.min(16, rec.get("borrowedAt").toString().length())) : "";
+                String dueAt = rec.get("dueAt") != null ? rec.get("dueAt").toString().replace("T", " ").substring(0, Math.min(16, rec.get("dueAt").toString().length())) : "";
+                String returnedAt = rec.get("returnedAt") != null ? rec.get("returnedAt").toString().replace("T", " ").substring(0, Math.min(16, rec.get("returnedAt").toString().length())) : "";
+                Object statusObj = rec.get("status");
+                int status = statusObj instanceof Number ? ((Number) statusObj).intValue() : 0;
+                Object idObj = rec.get("id");
+                int borrowId = idObj instanceof Number ? ((Number) idObj).intValue() : 0;
+
+                boolean returned = status == 0 || (returnedAt != null && !returnedAt.isEmpty());
+
+                // 书名
+                Label titleLbl = new Label("📖 " + bookTitle);
+                titleLbl.setStyle("-fx-font-size:15px;-fx-font-weight:bold;-fx-text-fill:#1e293b;");
+
+                // 日期信息
+                Label dateLbl = new Label("借阅: " + borrowedAt + "  |  应还: " + dueAt);
+                dateLbl.setStyle("-fx-font-size:13px;-fx-text-fill:#64748b;");
+
+                HBox bottomRow = new HBox(10);
+                bottomRow.setAlignment(Pos.CENTER_LEFT);
+
+                if (returned) {
+                    Label returnedLbl = new Label("✅ 已归还" + (!returnedAt.isEmpty() ? " (" + returnedAt + ")" : ""));
+                    returnedLbl.setStyle("-fx-font-size:13px;-fx-text-fill:#22c55e;-fx-font-weight:bold;");
+                    bottomRow.getChildren().add(returnedLbl);
+                } else {
+                    // 计算逾期
+                    double fee = 0;
+                    long overdueDays = 0;
+                    try {
+                        LocalDateTime due = LocalDateTime.parse(dueAt.replace(" ", "T"));
+                        LocalDateTime now = LocalDateTime.now();
+                        if (now.isAfter(due)) {
+                            overdueDays = ChronoUnit.DAYS.between(due, now);
+                            fee = overdueDays * OVERDUE_RATE;
+                        }
+                    } catch (Exception ignored) {}
+
+                    if (overdueDays > 0) {
+                        Label overdueLbl = new Label("⚠️ 逾期 " + overdueDays + " 天，欠费 ¥" + String.format("%.1f", fee));
+                        overdueLbl.setStyle("-fx-font-size:13px;-fx-text-fill:#ef4444;-fx-font-weight:bold;");
+                        bottomRow.getChildren().add(overdueLbl);
+                        totalFee += fee;
+                    } else {
+                        Label okLbl = new Label("📗 借阅中");
+                        okLbl.setStyle("-fx-font-size:13px;-fx-text-fill:#3b82f6;");
+                        bottomRow.getChildren().add(okLbl);
+                    }
+
+                    // 归还按钮
+                    Button returnBtn = new Button("确认归还");
+                    returnBtn.setStyle("-fx-background-color:#22c55e;-fx-text-fill:white;-fx-background-radius:6;");
+                    returnBtn.setOnAction(e -> {
+                        performReturn(borrowId, dialog, user);
+                    });
+                    bottomRow.getChildren().add(returnBtn);
+                }
+
+                card.getChildren().addAll(titleLbl, dateLbl, bottomRow);
+                container.getChildren().add(card);
+            }
+        }
+
+        // 总欠费
+        if (totalFee > 0) {
+            Label feeLabel = new Label("💰 总逾期欠费: ¥" + String.format("%.1f", totalFee));
+            feeLabel.setStyle("-fx-font-size:16px;-fx-font-weight:bold;-fx-text-fill:#ef4444;-fx-padding:10 0 0 0;");
+            container.getChildren().add(feeLabel);
+
+            Button clearFeeBtn = new Button("确认还清");
+            clearFeeBtn.setStyle("-fx-background-color:#f59e0b;-fx-text-fill:white;-fx-background-radius:8;-fx-padding:8 20;");
+            clearFeeBtn.setOnAction(e -> {
+                showAlert("确认", "已标记为还清", Alert.AlertType.INFORMATION);
+                dialog.close();
+            });
+            container.getChildren().add(clearFeeBtn);
+        }
+
+        ScrollPane sp = new ScrollPane(container);
+        sp.setFitToWidth(true);
+        sp.setPrefHeight(400);
+        dialog.getDialogPane().setContent(sp);
+        dialog.showAndWait();
+    }
+
+    private void performReturn(int borrowId, Dialog<?> dialog, User user) {
+        String token = getToken();
+        if (token == null) return;
+
+        String url = String.format(RETURN_URL, borrowId);
+        new Thread(() -> {
+            try {
+                Request req = new Request.Builder().url(url)
+                        .header("Authorization", "Bearer " + token)
+                        .put(RequestBody.create("", MediaType.get("application/json")))
+                        .build();
+                try (Response resp = httpClient.newCall(req).execute()) {
+                    String body = resp.body() != null ? resp.body().string() : "";
+                    System.out.println("[DEBUG] 归还响应: code=" + resp.code() + " body=" + body);
+                    if (resp.isSuccessful()) {
+                        Platform.runLater(() -> {
+                            showAlert("成功", "归还成功", Alert.AlertType.INFORMATION);
+                            dialog.close();
+                            showUserBorrows(user); // 刷新
+                        });
+                    } else {
+                        Platform.runLater(() -> showAlert("失败", "归还失败: " + body, Alert.AlertType.ERROR));
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> showAlert("错误", "网络异常: " + e.getMessage(), Alert.AlertType.ERROR));
             }
         }).start();
     }
 
     // ==================== 状态切换 ====================
-
-    // 切换用户状态（启用/禁用）
     public void toggleUserStatus(User user) {
         String token = getToken();
-        if (token == null) {
-            showAlert("错误", "未登录，请重新登录", Alert.AlertType.ERROR);
-            return;
-        }
-
-        String url = String.format(UPDATE_STATUS_URL, user.getId());
+        if (token == null) return;
+        String url = String.format(UPDATE_STATUS_URL, user.getPersonId());
         boolean newStatus = !user.getEnabled();
 
         new Thread(() -> {
             try {
-                RequestBody body = RequestBody.create(
-                        gson.toJson(newStatus),
-                        MediaType.get("application/json")
-                );
-
-                Request request = new Request.Builder()
-                        .url(url)
-                        .put(body)
-                        .header("Authorization", "Bearer " + token)
-                        .build();
-
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (response.isSuccessful()) {
+                RequestBody body = RequestBody.create(gson.toJson(newStatus), MediaType.get("application/json"));
+                Request req = new Request.Builder().url(url).put(body)
+                        .header("Authorization", "Bearer " + token).build();
+                try (Response resp = httpClient.newCall(req).execute()) {
+                    if (resp.isSuccessful()) {
                         Platform.runLater(() -> {
-                            user.setEnabled(newStatus);
+                            user.setStatus(newStatus ? 1 : 0);
                             usersTable.refresh();
-                            showAlert("成功", "用户状态已更新", Alert.AlertType.INFORMATION);
+                            showAlert("成功", "状态已更新", Alert.AlertType.INFORMATION);
                         });
-                    } else {
-                        Platform.runLater(() ->
-                                showAlert("错误", "更新用户状态失败: " + response.message(), Alert.AlertType.ERROR)
-                        );
                     }
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
-                Platform.runLater(() ->
-                        showAlert("错误", "网络请求失败: " + e.getMessage(), Alert.AlertType.ERROR)
-                );
-            }
+            } catch (Exception e) { e.printStackTrace(); }
         }).start();
     }
 
-    // ==================== 删除操作 ====================
-
-    // 删除单个用户
+    // ==================== 删除 ====================
     public void deleteUser(User user) {
-        Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmDialog.setTitle("确认删除");
-        confirmDialog.setHeaderText(null);
-        confirmDialog.setContentText(String.format("确定要删除用户 \"%s\" 吗？此操作不可恢复！", user.getUsername()));
-
-        confirmDialog.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                performDeleteUser(user.getId());
-            }
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("确认删除");
+        alert.setContentText("确定删除用户 \"" + user.getUserName() + "\" ?");
+        alert.showAndWait().ifPresent(r -> {
+            if (r == ButtonType.OK) performDelete(user.getPersonId().longValue());
         });
     }
 
-    // 批量删除
     @FXML
     private void handleBatchDelete() {
-        if (selectedUsers.isEmpty()) {
-            showAlert("提示", "请先选择要删除的用户", Alert.AlertType.WARNING);
-            return;
-        }
-
-        Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmDialog.setTitle("确认批量删除");
-        confirmDialog.setHeaderText(null);
-        confirmDialog.setContentText(String.format("确定要删除选中的 %d 个用户吗？此操作不可恢复！", selectedUsers.size()));
-
-        confirmDialog.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                for (User user : selectedUsers) {
-                    performDeleteUser(user.getId());
-                }
+        if (selectedUsers.isEmpty()) { showAlert("提示", "请先选择用户", Alert.AlertType.WARNING); return; }
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("批量删除");
+        alert.setContentText("确定删除选中的 " + selectedUsers.size() + " 个用户?");
+        alert.showAndWait().ifPresent(r -> {
+            if (r == ButtonType.OK) {
+                for (User u : new ArrayList<>(selectedUsers)) performDelete(u.getPersonId().longValue());
                 selectedUsers.clear();
                 selectAllCheckbox.setSelected(false);
+                updateBatchDeleteBtn();
             }
         });
     }
 
-    // 执行删除
-    private void performDeleteUser(Long userId) {
+    private void performDelete(Long userId) {
         String token = getToken();
-        if (token == null) {
-            showAlert("错误", "未登录，请重新登录", Alert.AlertType.ERROR);
-            return;
-        }
-
-        String url = String.format(DELETE_USER_URL, userId);
-
+        if (token == null) return;
         new Thread(() -> {
             try {
-                Request request = new Request.Builder()
-                        .url(url)
-                        .delete()
-                        .header("Authorization", "Bearer " + token)
-                        .build();
-
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (response.isSuccessful()) {
-                        Platform.runLater(() -> {
-                            loadUsers(currentPage); // 重新加载当前页
-                            showAlert("成功", "用户已删除", Alert.AlertType.INFORMATION);
-                        });
-                    } else {
-                        Platform.runLater(() ->
-                                showAlert("错误", "删除用户失败: " + response.message(), Alert.AlertType.ERROR)
-                        );
+                Request req = new Request.Builder()
+                        .url(String.format(DELETE_USER_URL, userId)).delete()
+                        .header("Authorization", "Bearer " + token).build();
+                try (Response resp = httpClient.newCall(req).execute()) {
+                    if (resp.isSuccessful()) {
+                        Platform.runLater(() -> { loadUsers(currentPage); showAlert("成功", "已删除", Alert.AlertType.INFORMATION); });
                     }
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
-                Platform.runLater(() ->
-                        showAlert("错误", "网络请求失败: " + e.getMessage(), Alert.AlertType.ERROR)
-                );
-            }
+            } catch (Exception e) { e.printStackTrace(); }
         }).start();
     }
 
-    // ==================== 搜索功能 ====================
+    // ==================== 搜索 / 分页 / 全选 ====================
+    @FXML private void handleSearch() { currentPage = 0; loadUsers(currentPage); }
+    @FXML private void handlePreviousPage() { if (currentPage > 0) loadUsers(currentPage - 1); }
+    @FXML private void handleNextPage() { if (currentPage < totalPages - 1) loadUsers(currentPage + 1); }
 
     @FXML
-    private void handleSearch() {
-        currentPage = 0; // 搜索时重置到第一页
-        loadUsers(currentPage);
+    private void handleSelectAll() {
+        boolean sel = selectAllCheckbox.isSelected();
+        selectedUsers.clear();
+        if (sel) selectedUsers.addAll(userList);
+        usersTable.refresh();
+        updateBatchDeleteBtn();
     }
 
-    // ==================== 分页功能 ====================
-
-    @FXML
-    private void handlePreviousPage() {
-        if (currentPage > 0) {
-            loadUsers(currentPage - 1);
-        }
-    }
-
-    @FXML
-    private void handleNextPage() {
-        if (currentPage < totalPages - 1) {
-            loadUsers(currentPage + 1);
-        }
-    }
-
-    private void updatePageInfo() {
-        pageInfoLabel.setText(String.format("%d/%d", currentPage + 1, totalPages));
-    }
-
+    private void updatePageInfo() { pageInfoLabel.setText((currentPage + 1) + "/" + totalPages); }
     private void updatePageButtons() {
         prevPageBtn.setDisable(currentPage == 0);
         nextPageBtn.setDisable(currentPage >= totalPages - 1);
     }
-
-    // ==================== 全选功能 ====================
-
-    @FXML
-    private void handleSelectAll() {
-        boolean isSelected = selectAllCheckbox.isSelected();
-        selectedUsers.clear();
-        if (isSelected) {
-            selectedUsers.addAll(userList);
-        }
-        // 更新批量删除按钮状态
-        // 这里需要在 FXML 中添加对批量删除按钮的引用
+    private void updateBatchDeleteBtn() {
+        if (batchDeleteBtn != null) batchDeleteBtn.setDisable(selectedUsers.isEmpty());
     }
 }

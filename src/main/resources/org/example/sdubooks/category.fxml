@@ -1,18 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane xmlns="http://javafx.com/javafx"
+<!-- 分类页面内容（由 MainShell 加载） -->
+<ScrollPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="org.example.sdubooks.controller.CategoryController"
-            prefHeight="400.0" prefWidth="600.0">
-    <top>
-        <fx:include source="base.fxml"/>
-    </top>
+            fitToWidth="true"
+            style="-fx-background-color: #f0f2f5;">
+    <content>
+        <VBox spacing="20" style="-fx-padding: 30;">
+            <!-- 标题 -->
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <Label text="📚" style="-fx-font-size: 36px;"/>
+                <VBox spacing="4">
+                    <Label fx:id="categoryTitleLabel" text="分类"
+                           style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                    <Label fx:id="countLabel" text="" style="-fx-font-size: 14px; -fx-text-fill: #94a3b8;"/>
+                </VBox>
+            </HBox>
 
-
-</BorderPane>
+            <!-- 书籍列表 -->
+            <VBox fx:id="bookListContainer" spacing="25"/>
+        </VBox>
+    </content>
+</ScrollPane>

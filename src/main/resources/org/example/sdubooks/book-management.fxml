@@ -2,7 +2,6 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.cell.PropertyValueFactory?>
 
 <ScrollPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
@@ -35,25 +34,9 @@
             <Label text=" 本书" style="-fx-text-fill: #64748b;"/>
         </HBox>
 
-        <!-- 书籍表格 -->
+        <!-- 书籍表格（列由控制器动态配置） -->
         <TableView fx:id="booksTable" prefHeight="500"
-                   style="-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 6, 0, 1, 0);">
-            <columns>
-                <TableColumn text="书名" prefWidth="200">
-                    <cellValueFactory><PropertyValueFactory property="title"/></cellValueFactory>
-                </TableColumn>
-                <TableColumn text="作者" prefWidth="150">
-                    <cellValueFactory><PropertyValueFactory property="author"/></cellValueFactory>
-                </TableColumn>
-                <TableColumn text="总库存" prefWidth="100">
-                    <cellValueFactory><PropertyValueFactory property="total"/></cellValueFactory>
-                </TableColumn>
-                <TableColumn text="可借数量" prefWidth="100">
-                    <cellValueFactory><PropertyValueFactory property="available"/></cellValueFactory>
-                </TableColumn>
-                <TableColumn text="操作" prefWidth="180"/>
-            </columns>
-        </TableView>
+                   style="-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 6, 0, 1, 0);"/>
 
         <!-- 底部分页 -->
         <HBox spacing="12" alignment="CENTER_RIGHT"

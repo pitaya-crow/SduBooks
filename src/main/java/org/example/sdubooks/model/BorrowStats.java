@@ -1,33 +1,11 @@
 package org.example.sdubooks.model;
 
-import java.util.List;
-
 public class BorrowStats {
-    private Long totalBorrowCount;
-    private Long totalReturnCount;
-    private Double monthlyGrowthRate;
+    private int totalBorrows;
+    private int returnedBooks;
+    private int thisMonthBooks;
 
-    public Long getTotalBorrowCount() {
-        return totalBorrowCount;
-    }
-
-    public void setTotalBorrowCount(Long totalBorrowCount) {
-        this.totalBorrowCount = totalBorrowCount;
-    }
-
-    public Long getTotalReturnCount() {
-        return totalReturnCount;
-    }
-
-    public void setTotalReturnCount(Long totalReturnCount) {
-        this.totalReturnCount = totalReturnCount;
-    }
-
-    public Double getMonthlyGrowthRate() {
-        return monthlyGrowthRate;
-    }
-
-    public void setMonthlyGrowthRate(Double monthlyGrowthRate) {
-        this.monthlyGrowthRate = monthlyGrowthRate;
-    }
+    public int getTotalBorrows() { return totalBorrows; }
+    public int getReturnedBooks() { return returnedBooks; }
+    public int getThisMonthBooks() { return thisMonthBooks; }
 }

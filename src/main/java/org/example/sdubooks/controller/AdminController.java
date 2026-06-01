@@ -20,6 +20,7 @@ public class AdminController extends BaseController {
     private static final String BOOK_MANAGE_FXML = "/org/example/sdubooks/book-management.fxml";
     private static final String USER_MANAGE_FXML = "/org/example/sdubooks/user-management.fxml";
     private static final String BORROW_STATS_FXML = "/org/example/sdubooks/borrow-statistics.fxml";
+    private static final String OVERDUE_FXML = "/org/example/sdubooks/overdue-management.fxml";
 
     @Override
     protected Stage getCurrentStage() {
@@ -55,6 +56,12 @@ public class AdminController extends BaseController {
     private void switchToBorrowStatistics() {
         loadContent(BORROW_STATS_FXML);
         updateActiveButton("statBtn");
+    }
+
+    @FXML
+    private void switchToOverdueManagement() {
+        loadContent(OVERDUE_FXML);
+        updateActiveButton("overdueBtn");
     }
 
     // 加载指定 FXML 到 contentPane（支持任意根节点类型）

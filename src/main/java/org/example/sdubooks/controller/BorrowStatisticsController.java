@@ -197,42 +197,41 @@ public class BorrowStatisticsController extends BaseController {
             return;
         }
 
-        BarChart<String, Number> chart = new BarChart<>(
-                new CategoryAxis(),
-                new NumberAxis()
-        );
+        PieChart pieChart = new PieChart();
+        pieChart.setTitle("分类统计");
+        pieChart.setLabelsVisible(true);
+        pieChart.setLabelLineLength(15);
+        pieChart.setLegendVisible(true);
+        pieChart.setStyle("-fx-font-size: 14px;");
 
-        chart.setTitle("分类统计");
-        chart.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-        chart.setLegendVisible(false);
+        // 饼图颜色
+        String[] colors = {"#5B8FF9", "#5AD8A6", "#F6BD16", "#E86452", "#6DC8EC", "#945FB9", "#FF9845", "#1E9493"};
 
-        CategoryAxis xAxis = (CategoryAxis) chart.getXAxis();
-        xAxis.setLabel("分类");
-
-        NumberAxis yAxis = (NumberAxis) chart.getYAxis();
-        yAxis.setLabel("图书数量");
-
-        XYChart.Series<String, Number> bookSeries = new XYChart.Series<>();
-        bookSeries.setName("图书数量");
-
+        int colorIndex = 0;
         for (CategoryStats category : categories) {
             String name = category.getCategoryName();
             int count = category.getBookCount();
             if (name != null && count > 0) {
-                bookSeries.getData().add(new XYChart.Data<>(name, count));
+                PieChart.Data data = new PieChart.Data(name + " (" + count + ")", count);
+                pieChart.getData().add(data);
             }
         }
 
-        if (bookSeries.getData().isEmpty()) {
+        if (pieChart.getData().isEmpty()) {
             categoryChartBox.getChildren().add(new Label("暂无数据"));
             return;
         }
 
-        chart.getData().add(bookSeries);
+        // 设置颜色
+        Platform.runLater(() -> {
+            int ci = 0;
+            for (PieChart.Data data : pieChart.getData()) {
+                data.getNode().setStyle("-fx-pie-color: " + colors[ci % colors.length] + ";");
+                ci++;
+            }
+        });
 
-        bookSeries.getNode().setStyle("-fx-bar-fill: #722ED1;");
-
-        categoryChartBox.getChildren().add(chart);
+        categoryChartBox.getChildren().add(pieChart);
     }
 
     private void loadBorrowRank() {

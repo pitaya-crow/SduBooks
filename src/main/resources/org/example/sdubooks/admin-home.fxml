@@ -47,6 +47,10 @@
                 <Button fx:id="statBtn" text="📈  借阅统计" onAction="#switchToBorrowStatistics"
                         style="-fx-alignment: CENTER_LEFT; -fx-padding: 12 16; -fx-background-color: transparent; -fx-text-fill: #475569; -fx-font-size: 14px; -fx-background-radius: 10; -fx-cursor: hand;"
                         maxWidth="Infinity"/>
+
+                <Button fx:id="overdueBtn" text="⚠️  逾期管理" onAction="#switchToOverdueManagement"
+                        style="-fx-alignment: CENTER_LEFT; -fx-padding: 12 16; -fx-background-color: transparent; -fx-text-fill: #475569; -fx-font-size: 14px; -fx-background-radius: 10; -fx-cursor: hand;"
+                        maxWidth="Infinity"/>
             </children>
         </VBox>
     </left>

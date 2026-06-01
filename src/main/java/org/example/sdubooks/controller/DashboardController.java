@@ -98,7 +98,7 @@ public class DashboardController extends BaseController {
                         totalBooksLabel.setText(String.valueOf(stats.getBookCount()));
                         borrowedBooksLabel.setText(String.valueOf(stats.getBorrowRecordCount()));
                         registeredUsersLabel.setText(String.valueOf(stats.getUserCount()));
-                        overdueBooksLabel.setText(String.valueOf(stats.getReviewCount()));
+                        overdueBooksLabel.setText(String.valueOf(stats.getOverdueCount()));
                     });
                 }
             }

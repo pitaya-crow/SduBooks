@@ -136,6 +136,10 @@ public class BookDetailController extends BaseController {
 
     private void loadReviews() {
         String token = getToken();
+        if (token == null) {
+            Platform.runLater(() -> reviewCountLabel.setText("读者书评 (0)"));
+            return;
+        }
         Request request = new Request.Builder()
                 .url(REVIEW_BASE_URL + "/book/" + bookId)
                 .header("Authorization", "Bearer " + token)
@@ -143,13 +147,16 @@ public class BookDetailController extends BaseController {
 
         new Thread(() -> {
             try (Response response = httpClient.newCall(request).execute()) {
-                String respBody = response.body() != null ? response.body().string() : "";
+                String respBody = response.body() != null ? response.body().string() : "{}";
+                System.out.println("[书评] bookId=" + bookId + " 响应=" + respBody.substring(0, Math.min(200, respBody.length())));
                 if (response.isSuccessful()) {
-                    String dataStr = respBody;
+                    String dataStr = "[]";
                     try {
                         JsonObject json = gson.fromJson(respBody, JsonObject.class);
                         if (json.has("data") && !json.get("data").isJsonNull()) {
                             dataStr = json.get("data").toString();
+                        } else {
+                            dataStr = respBody; // 尝试直接解析整个响应
                         }
                     } catch (Exception ignored) {}
                     List<BookReview> reviews = gson.fromJson(dataStr,
@@ -160,6 +167,8 @@ public class BookDetailController extends BaseController {
                         reviewCountLabel.setText("读者书评 (" + finalReviews.size() + ")");
                         displayReviews(finalReviews);
                     });
+                } else {
+                    System.err.println("[书评] 请求失败: " + response.code() + " " + respBody);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -323,37 +332,7 @@ public class BookDetailController extends BaseController {
     }
 
     private Long getCurrentUserId() {
-        String token = getToken();
-        if (token == null) {
-            System.out.println("[DEBUG] Token 为 null");
-            return null;
-        }
-
-        try {
-            String[] parts = token.split("\\.");
-            if (parts.length >= 2) {
-                String payload = new String(java.util.Base64.getUrlDecoder().decode(parts[1]));
-                System.out.println("[DEBUG] JWT payload: " + payload);
-                JsonObject json = gson.fromJson(payload, JsonObject.class);
-                // 尝试多种可能的 claim 名称
-                String[] claimNames = {"userId", "id", "sub", "user_id"};
-                for (String claim : claimNames) {
-                    if (json.has(claim)) {
-                        try {
-                            Long id = json.get(claim).getAsLong();
-                            System.out.println("[DEBUG] 从 claim '" + claim + "' 获取到 userId: " + id);
-                            return id;
-                        } catch (NumberFormatException ignored) {
-                            // sub 字段可能是字符串，不是数字
-                        }
-                    }
-                }
-                System.out.println("[DEBUG] JWT 中未找到用户ID字段，可用字段: " + json.keySet());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+        return BaseController.getUserId();
     }
 
     @FXML

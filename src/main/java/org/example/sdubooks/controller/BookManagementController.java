@@ -203,10 +203,12 @@ public class BookManagementController extends BaseController {
         titleField.setStyle(fieldStyle);
         TextField authorField = new TextField(isEdit ? book.getAuthor() : "");
         authorField.setStyle(fieldStyle);
-        // 分类下拉框（与首页八个分类一致）
+        // 分类下拉框（含数据库实际存在的分类）
         javafx.scene.control.ComboBox<String> categoryField = new javafx.scene.control.ComboBox<>();
-        categoryField.getItems().addAll("小说", "科技", "历史", "科学", "艺术", "商业", "心理学", "传记");
-        categoryField.setPromptText("选择分类");
+        categoryField.getItems().addAll("小说", "科幻", "文学", "历史", "科学", "艺术", "商业",
+                "心理学", "传记", "计算机", "科技", "教育");
+        categoryField.setEditable(true); // 允许手动输入，防止数据库有更多分类
+        categoryField.setPromptText("选择或输入分类");
         categoryField.setStyle(fieldStyle);
         categoryField.setPrefWidth(200);
         if (isEdit && book.getCategory() != null) {
@@ -355,16 +357,27 @@ public class BookManagementController extends BaseController {
                     payload.setId(book.getId());
                     payload.setTitle(title);
                     payload.setAuthor(author);
-                    payload.setCategory(categoryField.getValue());
+                    // 分类：优先用下拉框选的，没选就保留原来的
+                    String selectedCat = categoryField.getValue();
+                    payload.setCategory(selectedCat != null && !selectedCat.isEmpty()
+                            ? selectedCat : book.getCategory());
                     payload.setIsbn(isbnField.getText().trim());
                     payload.setPublisher(publisherField.getText().trim());
                     payload.setPublishDate(publishDateField.getText().trim());
                     payload.setDescription(descriptionArea.getText().trim());
                     payload.setTotal(totalSpinner.getValue());
                     payload.setAvailable(availableSpinner.getValue());
-                    // 如果没有选择本地文件，用手动输入的 URL
-                    if (selectedCoverFile == null && !manualCoverUrl.isEmpty()) {
+
+                    // 封面处理：本地文件 > 手动URL > 保留原封面
+                    if (selectedCoverFile != null) {
+                        // 本地文件：把文件引用暂存，交给 saveBook 中的 resolveCoverUrl 上传
+                        // selectedCoverFile 此处有值，saveBook 会调用 resolveCoverUrl 上传
+                        payload.setCoverUrl(null); // 让 resolveCoverUrl 去处理
+                    } else if (!manualCoverUrl.isEmpty()) {
                         payload.setCoverUrl(manualCoverUrl);
+                    } else {
+                        // 没有新封面：保留原来的封面
+                        payload.setCoverUrl(book.getCoverUrl());
                     }
                     saveBook(payload, true);
                 } else {
@@ -530,21 +543,26 @@ public class BookManagementController extends BaseController {
 
         new Thread(() -> {
             try {
-                // 如果编辑时选择了新的封面（本地或URL），更新 coverUrl
-                if (isEdit) {
-                    String coverUrl = resolveCoverUrl(token, book.getCoverUrl());
-                    if (coverUrl != null) {
-                        book.setCoverUrl(coverUrl);
+                // 如果有本地文件，先上传获取 URL
+                if (selectedCoverFile != null) {
+                    String uploaded = uploadCoverImage(token, selectedCoverFile);
+                    if (uploaded != null) {
+                        book.setCoverUrl(uploaded);
+                        System.out.println("[DEBUG] 封面上传成功: " + uploaded);
+                    } else {
+                        System.out.println("[DEBUG] 封面上传失败，保留原封面");
                     }
                 }
+                // （非本地文件的情况：coverUrl 已在弹窗里设好，直接用）
 
                 String json = gson.toJson(book);
                 System.out.println("[DEBUG] 编辑书籍请求: " + json);
                 RequestBody body = RequestBody.create(json, MediaType.get("application/json"));
 
+                // 编辑和新增都用 BOOKS_URL（不带 ID），后端从请求体读取 id
                 Request.Builder reqBuilder = new Request.Builder()
                         .header("Authorization", "Bearer " + token)
-                        .url(BOOKS_URL + (isEdit ? "/" + book.getId() : ""));
+                        .url(BOOKS_URL);
 
                 if (isEdit) {
                     reqBuilder.put(body);

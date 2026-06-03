@@ -2,8 +2,11 @@ package org.example.sdubooks.controller;
 
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
@@ -231,16 +234,42 @@ public class HomePageController extends BaseController {
         card.setStyle("-fx-background-color: white; -fx-background-radius: 20; " +
                 "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 15, 0, 0, 5); -fx-padding: 0; -fx-cursor: hand;");
 
-        // 封面区域
+        // 封面区域：有真实封面就显示，否则用彩色背景+emoji兜底
         javafx.scene.layout.StackPane coverBox = new javafx.scene.layout.StackPane();
-        String[] colors = {"#d4a574", "#7c8cf5", "#6bc5a0", "#e8a87c", "#a78bfa", "#67b8d6", "#f5a5a5", "#8dd6a0"};
-        String color = colors[index % colors.length];
-        coverBox.setStyle("-fx-background-color: " + color + "; -fx-pref-width: 150; -fx-min-width: 150; " +
-                "-fx-max-width: 150; -fx-pref-height: 180; -fx-min-height: 180; -fx-max-height: 180; " +
+        coverBox.setStyle("-fx-pref-width: 150; -fx-min-width: 150; -fx-max-width: 150; " +
+                "-fx-pref-height: 180; -fx-min-height: 180; -fx-max-height: 180; " +
                 "-fx-background-radius: 20 0 0 20; -fx-alignment: CENTER;");
-        Label emoji = new Label("📚");
-        emoji.setStyle("-fx-font-size: 40px;");
-        coverBox.getChildren().add(emoji);
+
+        if (book.getCoverUrl() != null && !book.getCoverUrl().isEmpty()) {
+            String coverUrl = book.getCoverUrl();
+            String filename = coverUrl.substring(coverUrl.lastIndexOf('/') + 1);
+            String localPath = "D:/2026javacode/demo/uploads/" + filename;
+            java.io.File coverFile = new java.io.File(localPath);
+            System.out.println("[封面] " + book.getTitle() + " file=" + localPath + " exists=" + coverFile.exists() + " size=" + (coverFile.exists() ? coverFile.length() : -1));
+            if (coverFile.exists()) {
+                try {
+                    Image img = new Image(coverFile.toURI().toString(), 150, 180, false, true, false);
+                    System.out.println("[封面] " + book.getTitle() + " img isError=" + img.isError() + " progress=" + img.getProgress() + " " + img.getWidth() + "x" + img.getHeight());
+                    ImageView iv = new ImageView(img);
+                    iv.setFitWidth(150);
+                    iv.setFitHeight(180);
+                    iv.setPreserveRatio(true);
+                    iv.setVisible(true);
+                    iv.setOpacity(1.0);
+                    iv.setStyle("-fx-border-color: red; -fx-border-width: 1;");
+                    coverBox.getChildren().add(iv);
+                } catch (Exception e) {
+                    System.out.println("[封面] " + book.getTitle() + " 异常: " + e.getMessage());
+                    e.printStackTrace();
+                    fallbackCover(coverBox, index);
+                }
+            } else {
+                System.out.println("[封面] " + book.getTitle() + " 文件不存在!");
+                fallbackCover(coverBox, index);
+            }
+        } else {
+            fallbackCover(coverBox, index);
+        }
 
         // 信息区域
         VBox infoBox = new VBox(8);
@@ -371,5 +400,17 @@ public class HomePageController extends BaseController {
             alert.setContentText("无法加载页面: " + fxmlPath);
             alert.showAndWait();
         }
+    }
+
+    /**
+     * 封面图片加载失败或无封面时，用彩色背景+📚 emoji兜底
+     */
+    private void fallbackCover(javafx.scene.layout.StackPane coverBox, int index) {
+        String[] colors = {"#d4a574", "#7c8cf5", "#6bc5a0", "#e8a87c", "#a78bfa", "#67b8d6", "#f5a5a5", "#8dd6a0"};
+        String color = colors[index % colors.length];
+        coverBox.setStyle(coverBox.getStyle() + "-fx-background-color: " + color + ";");
+        Label emoji = new Label("\uD83D\uDCDA");
+        emoji.setStyle("-fx-font-size: 40px;");
+        coverBox.getChildren().add(emoji);
     }
 }

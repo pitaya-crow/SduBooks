@@ -210,4 +210,19 @@ public class BaseController {
     public static String getToken() {
         return prefs.get(TOKEN_KEY, null);
     }
+
+    /**
+     * 保存当前用户ID（登录时由 LoginController 调用）
+     */
+    public static void saveUserId(long userId) {
+        prefs.putLong("user_id", userId);
+    }
+
+    /**
+     * 获取当前用户ID
+     */
+    public static Long getUserId() {
+        long id = prefs.getLong("user_id", -1);
+        return id == -1 ? null : id;
+    }
 }

@@ -112,9 +112,14 @@ public class LoginController {
 
         executePostRequest(LOGIN_URL, loginData, result -> {
             if (result.getCode() == 200) {
-                // 登录成功，保存 token 到本地
+                // 登录成功，保存 token 和 userId 到本地
                 if (result.getData() != null && result.getData().getToken() != null) {
                     BaseController.saveToken(result.getData().getToken());
+                    // 同时保存 userId，供后续提交书评等操作使用
+                    int personId = result.getData().getPersonId();
+                    if (personId > 0) {
+                        BaseController.saveUserId((long) personId);
+                    }
                 } else {
                     // 防御性处理：后端返回200但未携带Token时给出警告
                     showAlert("警告", "登录成功但未获取到凭证，部分功能可能受限", Alert.AlertType.WARNING);

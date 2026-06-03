@@ -87,22 +87,7 @@ public class SelfController extends BaseController {
     private UserStats currentUserStats;
 
     private Long getCurrentUserId() {
-        String token = getToken();
-        if (token == null) return null;
-        try {
-            String[] parts = token.split("\\.");
-            if (parts.length >= 2) {
-                String payload = new String(java.util.Base64.getUrlDecoder().decode(parts[1]));
-                JsonObject json = gson.fromJson(payload, JsonObject.class);
-                String[] claimNames = {"userId", "id", "sub", "user_id"};
-                for (String claim : claimNames) {
-                    if (json.has(claim)) {
-                        try { return json.get(claim).getAsLong(); } catch (Exception ignored) {}
-                    }
-                }
-            }
-        } catch (Exception e) { e.printStackTrace(); }
-        return null;
+        return BaseController.getUserId();
     }
 
     private void loadUserStats() {
